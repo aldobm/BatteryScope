@@ -70,6 +70,31 @@ Descarga directamente el instalador oficial listo para usar:
 
 ---
 
+### 🔌 Inspección de Hardware y Entrega de Energía
+
+| ⚡ Cargador USB-C y Power Delivery | 🖥️ Desglose de Subsistemas de Hardware |
+| :---: | :---: |
+| <img src="docs/screenshots/06_usbc_charger.jpg" alt="Cargador USB-C" width="100%" /> | <img src="docs/screenshots/07_hardware_breakdown.jpg" alt="Desglose de Hardware" width="100%" /> |
+| *Potencia PD negociada, voltaje, amperaje y estado del cable* | *Consumo en tiempo real por componente: SoC M1/M2/M3, Pantalla, RAM y SSD* |
+
+---
+
+### 🛠️ Mantenimiento, Inicio y Preferencias
+
+| 🚀 Auditoría de Apps de Arranque | 🛑 Optimización y Congelamiento Inteligente |
+| :---: | :---: |
+| <img src="docs/screenshots/08_startup_apps.jpg" alt="Apps de Arranque" width="100%" /> | <img src="docs/screenshots/09_optimization.jpg" alt="Optimización" width="100%" /> |
+| *Control de agentes de inicio de sesión con impacto en el arranque* | *Congela procesos devoradores con SIGSTOP a 0W y consejos dinámicos* |
+
+### 🌐 Ajustes y Selector Multi-idioma
+<p align="center">
+  <img src="docs/screenshots/10_settings.jpg" alt="Ajustes y Multi-idioma" width="95%" />
+  <br>
+  <i>Cambio instantáneo entre 7 idiomas nativos con fichas de banderas interactivas</i>
+</p>
+
+---
+
 ## ✨ Características Principales
 
 - **🔋 Telemetría Inteligente de Batería en Vivo**:

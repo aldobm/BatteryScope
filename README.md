@@ -56,7 +56,7 @@ Download the ready-to-run native installer directly:
 
 ---
 
-### 🔍 Deep Dive Power Diagnostics
+### 🔍 Power Diagnostics & Timeline
 
 | 🔥 Process Drain & Telemetry | 📈 Interval History & DarkWake |
 | :---: | :---: |
@@ -67,6 +67,31 @@ Download the ready-to-run native installer directly:
 | :---: | :---: |
 | <img src="docs/screenshots/04_timeline_charts.jpg" alt="Timeline Charts" width="100%" /> | <img src="docs/screenshots/05_health_cells.jpg" alt="Health & Cells" width="100%" /> |
 | *Historical timeline tracing battery and charging events* | *Live 3-cell voltage balancing, temperature sensor & cycle capacity* |
+
+---
+
+### 🔌 Hardware Inspection & Power Delivery
+
+| ⚡ USB-C Charger & Power Delivery | 🖥️ Hardware Subsystems Breakdown |
+| :---: | :---: |
+| <img src="docs/screenshots/06_usbc_charger.jpg" alt="USB-C Charger" width="100%" /> | <img src="docs/screenshots/07_hardware_breakdown.jpg" alt="Hardware Breakdown" width="100%" /> |
+| *Negotiated PD wattage, adapter voltage, amperage & cable health* | *Real-time energy draw per component: SoC, Retina Display, RAM, SSD* |
+
+---
+
+### 🛠️ Maintenance, Startup & Preferences
+
+| 🚀 Startup Apps Audit (Login Items) | 🛑 Smart Process Freeze & Optimization |
+| :---: | :---: |
+| <img src="docs/screenshots/08_startup_apps.jpg" alt="Startup Apps" width="100%" /> | <img src="docs/screenshots/09_optimization.jpg" alt="Optimization" width="100%" /> |
+| *Audit background launch agents and manage boot delay impact* | *SIGSTOP freeze heavy sync hogs without quitting; display brightness tips* |
+
+### 🌐 Multi-Language Settings
+<p align="center">
+  <img src="docs/screenshots/10_settings.jpg" alt="Settings & Multi-language" width="95%" />
+  <br>
+  <i>Instant live language switching across 7 native languages with interactive flag cards</i>
+</p>
 
 ---
 
