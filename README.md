@@ -111,6 +111,20 @@ Unlike standard task managers that just show cryptic numbers and PIDs, Battery S
 
 ---
 
+### 🧭 macOS Menu Bar Companion & Instant Access
+
+Battery Scope sits discreetly in your native macOS menu bar. A single click opens the **Liquid Glass Popover** for instantaneous power checks without interrupting your workflow:
+
+<p align="center">
+  <img src="docs/screenshots/11_menubar_popup.png" alt="Battery Scope Menu Bar Companion" width="380" />
+</p>
+
+- ⚡ **Live Flow & Percentage**: Current drain/charge wattage, health condition, and cycle count.
+- 🔥 **Top Energy Consumers**: Real-time ranking of active resource hogs.
+- 🚀 **One-Click Deep Dive**: Instant shortcut to launch the full analyzer or quit gracefully.
+
+---
+
 ## ✨ Features
 
 - **🧠 Automated Intelligent Recommendations**:

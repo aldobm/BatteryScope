@@ -111,6 +111,20 @@ A diferencia de los monitores de tareas tradicionales que solo muestran números
 
 ---
 
+### 🧭 Menú Emergente en la Barra Superior (Menu Bar)
+
+Battery Scope se integra discretamente en la barra de menús de macOS. Un solo clic despliega el **menú emergente Liquid Glass** para chequear el estado de tu Mac al instante sin interrumpir lo que estés haciendo:
+
+<p align="center">
+  <img src="docs/screenshots/11_menubar_popup.png" alt="Menú Emergente de Barra de Menú" width="380" />
+</p>
+
+- ⚡ **Flujo en Vivo y Porcentaje:** Vatios instantáneos de consumo o carga, salud de batería y ciclos.
+- 🔥 **Top de Apps Devoradoras en Vivo:** Ranking en tiempo real de los procesos que más consumen en ese segundo.
+- 🚀 **Acceso en 1 Clic:** Botón directo para abrir la ventana completa o cerrar la aplicación.
+
+---
+
 ## ✨ Características Principales
 
 - **🧠 Diagnóstico Inteligente y Recomendaciones Automáticas**:
