@@ -5,6 +5,12 @@
 </p>
 
 <p align="center">
+  <b>Language / Idioma:</b>
+  <a href="README.md"><b>🇺🇸 English</b></a> | 
+  <a href="README.es.md"><b>🇪🇸 Español</b></a>
+</p>
+
+<p align="center">
   <b>A sleek, native macOS power diagnostic and energy optimization suite built in SwiftUI.</b><br>
   Engineered for Apple Silicon (M1, M2, M3, M4) and Intel Mac laptops running macOS 13+ (Ventura, Sonoma, Sequoia).
 </p>
@@ -12,6 +18,9 @@
 <p align="center">
   <a href="https://github.com/aldobm/BatteryScope/releases/latest">
     <img src="https://img.shields.io/github/v/release/aldobm/BatteryScope?style=for-the-badge&logo=apple&color=00D2FF&label=Release" alt="Latest Release" />
+  </a>
+  <a href="https://github.com/aldobm/BatteryScope/releases">
+    <img src="https://img.shields.io/github/downloads/aldobm/BatteryScope/total?style=for-the-badge&logo=apple&color=30D158&label=Downloads" alt="Total Downloads" />
   </a>
   <img src="https://img.shields.io/badge/Platform-macOS%2013%2B-5856D6?style=for-the-badge&logo=apple" alt="Platform" />
   <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-AF52DE?style=for-the-badge" alt="Architecture" />
@@ -133,7 +142,8 @@ BatteryScope/
 ├── publish_release.sh          # Automated GitHub Release publisher
 ├── .github/workflows/          # GitHub Actions CI/CD workflows
 ├── docs/screenshots/           # Screenshots and interface assets
-├── README.md                   # Project documentation
+├── README.md                   # Project documentation in English
+├── README.es.md                # Project documentation in Spanish
 └── src/
     ├── main.swift              # App entry point
     ├── AppDelegate.swift       # NSApplicationDelegate & MenuBar popover controller
