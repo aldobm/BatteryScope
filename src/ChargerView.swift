@@ -1,19 +1,58 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Dedicated Futuristic USB-C Charger & Charging Telemetry View
+// MARK: - Animated Water Wave Shape for Fluid Battery Simulation
+
+public struct WaterWaveShape: Shape {
+    public var progress: CGFloat // 0.0 to 1.0
+    public var waveHeight: CGFloat
+    public var phase: CGFloat
+    
+    public var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(progress, phase) }
+        set {
+            progress = newValue.first
+            phase = newValue.second
+        }
+    }
+    
+    public func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let width = rect.width
+        let height = rect.height
+        let clampedProgress = max(0.02, min(0.98, progress))
+        let waterY = height * (1.0 - clampedProgress)
+        
+        path.move(to: CGPoint(x: 0, y: height))
+        path.addLine(to: CGPoint(x: 0, y: waterY))
+        
+        let wavelength = width
+        for x in stride(from: 0, through: width, by: 3) {
+            let relativeX = x / wavelength
+            let sine = sin(relativeX * 2 * .pi + phase)
+            let y = waterY + sine * waveHeight
+            path.addLine(to: CGPoint(x: x, y: y))
+        }
+        
+        path.addLine(to: CGPoint(x: width, y: height))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - Focused & Dynamic USB-C Charger & Fluid Battery View
 
 public struct ChargerView: View {
     @ObservedObject var service: BatteryService = BatteryService.shared
     @ObservedObject var locManager: LocalizationManager = LocalizationManager.shared
     
-    // Animation states
-    @State private var rotationAngle: Double = 0.0
+    // Continuous animation timer
+    @State private var wavePhase: CGFloat = 0.0
+    @State private var beamOffset: CGFloat = 0.0
     @State private var pulseScale: CGFloat = 1.0
-    @State private var waveOffset: CGFloat = 0.0
-    @State private var glowOpacity: Double = 0.6
+    @State private var boltGlow: Double = 0.7
     
-    private let timer = Timer.publish(every: 0.04, on: .main, in: .common).autoconnect()
+    private let animationTimer = Timer.publish(every: 0.035, on: .main, in: .common).autoconnect()
     
     public init() {}
     
@@ -22,118 +61,80 @@ public struct ChargerView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 20) {
-            // 1. Top Section Header with Live Status Pill
-            headerSection
+        VStack(spacing: 16) {
+            // 1. PANEL SUPERIOR: Cargador USB-C (Se enciende si está conectado)
+            chargerSourcePanel
             
-            // 2. Hardware Charger Brick Card (Glowing if connected, OFF/Dimmed if unplugged)
-            chargerHardwareCard
+            // 2. ENTRE AMBOS: Línea animada de Transferencia Energética con Potencia y Amperaje
+            energyTransferBridge
             
-            if service.snapshot.isExternalConnected {
-                // 3. Flowing Energy Beam Line (visual connection from charger to battery)
-                energyFlowBeam
-                
-                // 4. Smartphone-Style Nebula Aura Charging Orb + Big Lightning Bolt
-                smartphoneNebulaChargingOrb
-                
-                // 5. Intelligent Charge Completion & Optimized Limit Card
-                chargeEstimateAndLimitCard
-                
-                // 6. Multi-Battery 3-Cell Live Charging Bars + Temperature Sensor
-                cellsChargingAndThermalSection
-            } else {
-                // Unplugged / Battery Mode Guidance Card
-                unpluggedBatteryModeCard
-            }
+            // 3. PANEL INFERIOR: Batería del Sistema (Agua líquida ondulante + Métricas enfocadas)
+            fluidSystemBatteryPanel
         }
-        .onReceive(timer) { _ in
+        .onReceive(animationTimer) { _ in
+            wavePhase += 0.08
+            if wavePhase >= .pi * 2 { wavePhase = 0 }
+            
             if service.snapshot.isExternalConnected {
-                rotationAngle += 1.8
-                if rotationAngle >= 360 { rotationAngle = 0 }
-                waveOffset = (waveOffset + 0.03).truncatingRemainder(dividingBy: 1.0)
+                beamOffset = (beamOffset + 0.025).truncatingRemainder(dividingBy: 1.0)
             }
         }
         .onAppear {
-            withAnimation(Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                pulseScale = 1.10
-                glowOpacity = 0.95
+            withAnimation(Animation.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                pulseScale = 1.08
+                boltGlow = 1.0
             }
         }
     }
     
-    // MARK: - 1. Header Section
-    private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(loc("nav_charger"))
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                Text(service.snapshot.isExternalConnected ? loc("charger_energy_flow") : loc("charger_status_disconnected"))
-                    .font(.system(size: 12))
-                    .foregroundColor(Color.textSecondary)
-            }
-            
-            Spacer()
-            
-            // Status Pill
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(service.snapshot.isExternalConnected ? Color.liquidEmerald : Color.gray)
-                    .frame(width: 8, height: 8)
-                    .shadow(color: service.snapshot.isExternalConnected ? Color.liquidEmerald.opacity(0.8) : Color.clear, radius: 4)
-                
-                Text(service.snapshot.isExternalConnected ? loc("charger_status_connected") : loc("charger_status_disconnected"))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(service.snapshot.isExternalConnected ? Color.liquidEmerald : Color.textMuted)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(service.snapshot.isExternalConnected ? Color.liquidEmerald.opacity(0.12) : Color.white.opacity(0.04))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(service.snapshot.isExternalConnected ? Color.liquidEmerald.opacity(0.35) : Color.white.opacity(0.08), lineWidth: 1)
-            )
-        }
-    }
-    
-    // MARK: - 2. Charger Hardware Card
-    private var chargerHardwareCard: some View {
+    // MARK: - 1. Panel Superior: Adaptador de Corriente USB-C
+    private var chargerSourcePanel: some View {
         let isPlugged = service.snapshot.isExternalConnected
         let watts = service.snapshot.adapterWatts > 0 ? service.snapshot.adapterWatts : (isPlugged ? 20 : 0)
         let voltage = service.snapshot.adapterVoltage > 0 ? service.snapshot.adapterVoltage : (isPlugged ? 20.0 : 0.0)
         let current = service.snapshot.adapterCurrent > 0 ? service.snapshot.adapterCurrent : (isPlugged ? 3.0 : 0.0)
         let manufacturer = service.snapshot.adapterManufacturer.isEmpty ? "Apple Inc." : service.snapshot.adapterManufacturer
-        let adapterName = isPlugged ? (service.snapshot.adapterName.isEmpty || service.snapshot.adapterName == "Desconectado" ? "USB-C Power Adapter" : service.snapshot.adapterName) : loc("charger_unplugged_title")
+        let adapterName = isPlugged ?
+            (service.snapshot.adapterName.isEmpty || service.snapshot.adapterName == "Desconectado" ? "USB-C Power Adapter" : service.snapshot.adapterName) :
+            "Adaptador de Corriente USB-C"
         
-        return VStack(spacing: 16) {
-            // Main Banner
-            HStack(spacing: 18) {
+        return VStack(spacing: 14) {
+            // Header del panel
+            HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(isPlugged ? Color.liquidAmber.opacity(0.20) : Color.white.opacity(0.04))
-                        .frame(width: 58, height: 58)
+                        .fill(isPlugged ? Color.liquidAmber.opacity(0.22) : Color.white.opacity(0.04))
+                        .frame(width: 50, height: 50)
                     
                     if isPlugged {
                         Circle()
-                            .stroke(Color.liquidAmber.opacity(0.4), lineWidth: 2)
+                            .stroke(Color.liquidAmber.opacity(0.45), lineWidth: 1.5)
                             .scaleEffect(pulseScale)
                     }
                     
                     Image(systemName: isPlugged ? "powerplug.fill" : "powerplug")
                         .foregroundColor(isPlugged ? Color.liquidAmber : Color.textMuted)
-                        .font(.system(size: 26))
+                        .font(.system(size: 22))
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(adapterName)
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundColor(isPlugged ? .white : Color.textMuted)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(adapterName)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(isPlugged ? .white : Color.textMuted)
+                        
+                        // Estado Activo / Apagado
+                        Text(isPlugged ? "ACTIVO" : "APAGADO")
+                            .font(.system(size: 9, weight: .black, design: .rounded))
+                            .foregroundColor(isPlugged ? Color.liquidEmerald : Color.textMuted)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(isPlugged ? Color.liquidEmerald.opacity(0.18) : Color.white.opacity(0.05))
+                            .clipShape(Capsule())
+                    }
                     
-                    Text(isPlugged ? String(format: loc("adapter_manufacturer"), manufacturer) : loc("charger_status_disconnected"))
-                        .font(.system(size: 12))
+                    Text(isPlugged ? String(format: loc("adapter_manufacturer"), manufacturer) + " • Puerto Thunderbolt" : "Sin cargador conectado • Operando con batería")
+                        .font(.system(size: 11))
                         .foregroundColor(Color.textSecondary)
                 }
                 
@@ -142,442 +143,404 @@ public struct ChargerView: View {
                 // Wattage Display
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(watts) W")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        .font(.system(size: 24, weight: .heavy, design: .rounded))
                         .foregroundColor(isPlugged ? Color.liquidAmber : Color.textMuted)
                     
-                    Text(isPlugged ? loc("negotiated_power") : "0 W")
-                        .font(.system(size: 10))
+                    Text(isPlugged ? "PD Negociado" : "En Reposo")
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundColor(Color.textMuted)
                 }
             }
             
-            // Sub-metrics Grid
-            HStack(spacing: 12) {
-                metricBox(
-                    title: loc("adapter_voltage"),
-                    value: String(format: "%.1f V", voltage),
+            // Fila de Métricas del Adaptador
+            HStack(spacing: 10) {
+                panelMetricCard(
+                    title: "Voltaje",
+                    value: isPlugged ? String(format: "%.1f V", voltage) : "-- V",
                     isPlugged: isPlugged,
-                    accentColor: Color.liquidCyan
+                    color: Color.liquidCyan
                 )
                 
-                metricBox(
-                    title: loc("adapter_current"),
-                    value: String(format: "%.1f A", current),
+                panelMetricCard(
+                    title: "Amperaje",
+                    value: isPlugged ? String(format: "%.1f A", current) : "-- A",
                     isPlugged: isPlugged,
-                    accentColor: Color.liquidBlue
+                    color: Color.liquidBlue
                 )
                 
-                metricBox(
-                    title: loc("cable_status"),
-                    value: isPlugged ? loc("cable_status_optimal") : "Desconectado",
+                panelMetricCard(
+                    title: "Protocolo",
+                    value: isPlugged ? "USB-C PD 3.0" : "Sin Fuente",
                     isPlugged: isPlugged,
-                    accentColor: isPlugged ? Color.liquidEmerald : Color.textMuted
+                    color: isPlugged ? Color.liquidEmerald : Color.textMuted
                 )
                 
-                metricBox(
-                    title: loc("charger_port_location"),
-                    value: isPlugged ? "USB-C / TB4" : "--",
+                panelMetricCard(
+                    title: "Cable",
+                    value: isPlugged ? "Óptimo" : "--",
                     isPlugged: isPlugged,
-                    accentColor: Color.liquidPink
+                    color: isPlugged ? Color.liquidEmerald : Color.textMuted
                 )
             }
         }
-        .padding(18)
-        .liquidGlassCard(cornerRadius: 18, glowColor: isPlugged ? Color.liquidAmber.opacity(0.18) : Color.clear)
+        .padding(16)
+        .liquidGlassCard(cornerRadius: 18, glowColor: isPlugged ? Color.liquidAmber.opacity(0.20) : Color.clear)
     }
     
-    private func metricBox(title: String, value: String, isPlugged: Bool, accentColor: Color) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+    private func panelMetricCard(title: String, value: String, isPlugged: Bool, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
             Text(title)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(Color.textSecondary)
                 .lineLimit(1)
             
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(isPlugged ? accentColor : Color.textMuted)
+                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                .foregroundColor(isPlugged ? color : Color.textMuted)
                 .lineLimit(1)
         }
-        .padding(12)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: "0A0414").opacity(isPlugged ? 0.55 : 0.25))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color(hex: "0A0414").opacity(isPlugged ? 0.50 : 0.25))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
     
-    // MARK: - 3. Energy Flow Beam Animation (Vertical Light Pulses)
-    private var energyFlowBeam: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "bolt.fill")
-                .foregroundColor(Color.liquidAmber)
-                .font(.system(size: 12))
+    // MARK: - 2. Entre Ambos: Línea de Transferencia de Energía
+    private var energyTransferBridge: some View {
+        let isPlugged = service.snapshot.isExternalConnected
+        let watts = service.snapshot.adapterWatts > 0 ? service.snapshot.adapterWatts : (isPlugged ? 20 : 0)
+        let current = service.snapshot.adapterCurrent > 0 ? service.snapshot.adapterCurrent : (isPlugged ? 3.0 : 0.0)
+        
+        return HStack(spacing: 12) {
+            // Left Connector
+            HStack(spacing: 3) {
+                Circle().fill(isPlugged ? Color.liquidAmber : Color.white.opacity(0.1)).frame(width: 5, height: 5)
+                Rectangle().fill(isPlugged ? Color.liquidAmber.opacity(0.6) : Color.white.opacity(0.06)).frame(height: 2)
+            }
             
-            // Flowing Line with Travelling Gradient
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    // Track
-                    Capsule()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(height: 4)
+            // Central Dynamic Pill with Voltage/Current/Wattage transfer
+            HStack(spacing: 8) {
+                Image(systemName: isPlugged ? "bolt.fill" : "powerplug")
+                    .foregroundColor(isPlugged ? Color.liquidCyan : Color.textMuted)
+                    .font(.system(size: 11, weight: .bold))
+                    .scaleEffect(isPlugged ? pulseScale : 1.0)
+                
+                if isPlugged {
+                    Text("Transferencia:")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color.textSecondary)
                     
-                    // Moving Energy Segment
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.clear,
-                                    Color.liquidCyan.opacity(0.8),
-                                    Color.liquidEmerald,
-                                    Color.liquidAmber,
-                                    Color.clear
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geo.size.width * 0.35, height: 4)
-                        .offset(x: (geo.size.width * 0.9) * waveOffset)
+                    Text("\(watts) W • \(String(format: "%.1f A", current))")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .foregroundColor(Color.liquidEmerald)
+                    
+                    // Animated Flow Arrows
+                    HStack(spacing: 2) {
+                        ForEach(0..<3) { i in
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundColor(Color.liquidCyan.opacity(Double(i + 1) * 0.33))
+                        }
+                    }
+                } else {
+                    Text("Sin transferencia eléctrica activa")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color.textMuted)
                 }
             }
-            .frame(height: 6)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(Color(hex: "0C0519").opacity(0.85))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(isPlugged ? Color.liquidCyan.opacity(0.40) : Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .shadow(color: isPlugged ? Color.liquidCyan.opacity(0.3) : Color.clear, radius: 8)
             
-            Image(systemName: "arrow.down.circle.fill")
-                .foregroundColor(Color.liquidEmerald)
-                .font(.system(size: 12))
-                .rotationEffect(.degrees(waveOffset * 360))
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 4)
-    }
-    
-    // MARK: - 4. Smartphone-Style Nebula Aura Charging Orb + Big Lightning Bolt
-    private var smartphoneNebulaChargingOrb: some View {
-        let percent = service.snapshot.chargePercent
-        
-        return ZStack {
-            // Cosmic Outer Nebula Glow Layer 1 (Wide Diffuse)
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color.liquidEmerald.opacity(0.35 * glowOpacity),
-                            Color.liquidCyan.opacity(0.20 * glowOpacity),
-                            Color.liquidViolet.opacity(0.12 * glowOpacity),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: 40,
-                        endRadius: 130
-                    )
-                )
-                .frame(width: 260, height: 260)
-                .blur(radius: 18)
-            
-            // Rotating Nebula Aura Ring Layer 2
-            Circle()
-                .stroke(
-                    AngularGradient(
-                        colors: [
-                            Color.liquidEmerald,
-                            Color.liquidCyan,
-                            Color.liquidBlue,
-                            Color.liquidPink,
-                            Color.liquidAmber,
-                            Color.liquidEmerald
-                        ],
-                        center: .center
-                    ),
-                    lineWidth: 6
-                )
-                .frame(width: 190, height: 190)
-                .rotationEffect(.degrees(rotationAngle))
-                .blur(radius: 6)
-                .opacity(0.85)
-            
-            // Sharp Progress Ring Layer 3
-            Circle()
-                .stroke(Color.white.opacity(0.08), lineWidth: 8)
-                .frame(width: 170, height: 170)
-            
-            Circle()
-                .trim(from: 0, to: max(0.05, CGFloat(percent) / 100.0))
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.liquidEmerald, Color.liquidCyan],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                )
-                .frame(width: 170, height: 170)
-                .rotationEffect(.degrees(-90))
-                .shadow(color: Color.liquidEmerald.opacity(0.8), radius: 8, x: 0, y: 0)
-            
-            // Inner Translucent Bubble
-            Circle()
-                .fill(Color(hex: "0C0519").opacity(0.85))
-                .frame(width: 150, height: 150)
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                )
-            
-            // Center Smartphone Lightning Bolt & Percentage
-            VStack(spacing: 4) {
-                // Smartphone Neon Lightning Bolt with breathing pulse
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.liquidCyan, Color.liquidEmerald],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .scaleEffect(pulseScale)
-                    .shadow(color: Color.liquidEmerald.opacity(0.9), radius: 12, x: 0, y: 0)
-                    .shadow(color: Color.liquidCyan.opacity(0.6), radius: 20, x: 0, y: 0)
-                
-                // Big Percentage
-                Text("\(percent)%")
-                    .font(.system(size: 36, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                
-                // Fast Charging PD Badge
-                Text(loc("charger_fast_charging"))
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundColor(Color.liquidEmerald)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.liquidEmerald.opacity(0.15))
-                    .clipShape(Capsule())
+            // Right Connector
+            HStack(spacing: 3) {
+                Rectangle().fill(isPlugged ? Color.liquidCyan.opacity(0.6) : Color.white.opacity(0.06)).frame(height: 2)
+                Circle().fill(isPlugged ? Color.liquidCyan : Color.white.opacity(0.1)).frame(width: 5, height: 5)
             }
         }
-        .frame(height: 250)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
     }
     
-    // MARK: - 5. Charge Completion & Optimized Limit Card
-    private var chargeEstimateAndLimitCard: some View {
+    // MARK: - 3. Panel Inferior: Batería del Sistema (Agua Líquida Ondulante)
+    private var fluidSystemBatteryPanel: some View {
+        let isPlugged = service.snapshot.isExternalConnected
         let percent = service.snapshot.chargePercent
+        let progress = CGFloat(percent) / 100.0
+        let temp = service.snapshot.temperature > 0 ? service.snapshot.temperature : 30.2
         let isFullyCharged = service.snapshot.isFullyCharged || percent >= 100
         let isNearOptimizedLimit = percent >= 80 && percent < 100
         
-        // Compute estimated minutes
-        let timeMinutes = service.snapshot.timeRemainingMinutes > 0 ? service.snapshot.timeRemainingMinutes : max(15, Int((100 - percent) * 80 / 100))
-        
-        return HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(isFullyCharged ? Color.liquidEmerald.opacity(0.18) : (isNearOptimizedLimit ? Color.liquidAmber.opacity(0.18) : Color.liquidCyan.opacity(0.18)))
-                    .frame(width: 48, height: 48)
-                
-                Image(systemName: isFullyCharged ? "checkmark.seal.fill" : (isNearOptimizedLimit ? "shield.lefthalf.filled" : "clock.arrow.circlepath"))
-                    .foregroundColor(isFullyCharged ? Color.liquidEmerald : (isNearOptimizedLimit ? Color.liquidAmber : Color.liquidCyan))
-                    .font(.system(size: 22))
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                if isFullyCharged {
-                    Text(loc("charger_full_bypass"))
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    Text("Alimentación directa por corriente alterna • La batería no sufre desgaste.")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.textSecondary)
-                } else if isNearOptimizedLimit {
-                    Text(loc("charger_optimized_charging"))
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(Color.liquidAmber)
-                    Text(loc("charger_limit_notice"))
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.textSecondary)
-                } else {
-                    HStack(spacing: 6) {
-                        Text(loc("charger_est_time"))
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                        Text("~\(timeMinutes) min")
-                            .font(.system(size: 14, weight: .heavy, design: .rounded))
-                            .foregroundColor(Color.liquidEmerald)
-                    }
-                    Text("Estimación en base a la tasa de carga rápida USB-C PD negociada.")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.textSecondary)
-                }
-            }
-            
-            Spacer()
-        }
-        .padding(16)
-        .liquidGlassCard(cornerRadius: 16, glowColor: Color.liquidCyan.opacity(0.15))
-    }
-    
-    // MARK: - 6. 3-Cell Live Charging Bars + Temperature Sensor
-    private var cellsChargingAndThermalSection: some View {
-        let temp = service.snapshot.temperature > 0 ? service.snapshot.temperature : 30.5
-        let cellVoltages = service.snapshot.cellVoltages.isEmpty ? [3.830, 3.841, 3.829] : service.snapshot.cellVoltages
-        
-        return VStack(spacing: 14) {
-            // Header with Cell Balancing & Temperature
+        return VStack(spacing: 16) {
+            // Header del Panel de Batería
             HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "square.3.layers.3d.down.right.slash")
-                        .foregroundColor(Color.liquidCyan)
-                        .font(.system(size: 13))
-                    Text(loc("charger_cell_balancing"))
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                HStack(spacing: 7) {
+                    Image(systemName: "battery.100.bolt")
+                        .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
+                        .font(.system(size: 15, weight: .bold))
+                    Text("Batería del Sistema")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
                 
                 Spacer()
                 
-                // Temperature Sensor Badge
+                // Dynamic Status Badge
                 HStack(spacing: 5) {
-                    Image(systemName: "thermometer.medium")
-                        .foregroundColor(Color.liquidEmerald)
-                        .font(.system(size: 11))
-                    Text(String(format: "%.1f °C", temp))
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                    Text("(\(loc("charger_temp_optimal")))")
-                        .font(.system(size: 10))
-                        .foregroundColor(Color.liquidEmerald)
+                    Circle()
+                        .fill(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
+                        .frame(width: 7, height: 7)
+                        .shadow(color: (isPlugged ? Color.liquidEmerald : Color.liquidCyan).opacity(0.8), radius: 3)
+                    
+                    Text(isPlugged ? "RECARGANDO (FLUJO ACTIVO)" : "DRENANDO (EN BATERÍA)")
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                .background(Color.liquidEmerald.opacity(0.12))
+                .background((isPlugged ? Color.liquidEmerald : Color.liquidCyan).opacity(0.12))
                 .clipShape(Capsule())
             }
             
-            // 3-Cell Individual Animated Progress Bars
+            // TANQUE DE BATERÍA ESTILIZADO CON AGUA LÍQUIDA ONDULANTE
+            ZStack(alignment: .trailing) {
+                // Main Battery Crystal Tank Body
+                HStack(spacing: 0) {
+                    ZStack(alignment: .bottom) {
+                        // 1. Tank Background Dark Bed
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color(hex: "080313").opacity(0.75))
+                        
+                        // 2. Liquid Layer 1 (Back Wave - Translucent)
+                        WaterWaveShape(progress: progress, waveHeight: 7, phase: wavePhase + .pi)
+                            .fill(
+                                isPlugged ?
+                                LinearGradient(
+                                    colors: [Color.liquidEmerald.opacity(0.40), Color.liquidCyan.opacity(0.25)],
+                                    startPoint: .bottom,
+                                    endPoint: .top
+                                ) :
+                                LinearGradient(
+                                    colors: [Color.liquidPurple.opacity(0.45), Color.liquidBlue.opacity(0.30)],
+                                    startPoint: .bottom,
+                                    endPoint: .top
+                                )
+                            )
+                        
+                        // 3. Liquid Layer 2 (Front Wave - Vibrant Colorful Fluid)
+                        WaterWaveShape(progress: progress, waveHeight: 9, phase: wavePhase)
+                            .fill(
+                                isPlugged ?
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: "00B4D8"),
+                                        Color.liquidCyan,
+                                        Color.liquidEmerald
+                                    ],
+                                    startPoint: .bottomLeading,
+                                    endPoint: .topTrailing
+                                ) :
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: "560BAD"),
+                                        Color(hex: "7209B7"),
+                                        Color.liquidPink,
+                                        Color.liquidCyan
+                                    ],
+                                    startPoint: .bottomLeading,
+                                    endPoint: .topTrailing
+                                )
+                            )
+                        
+                        // 4. Subtle Surface Specular Glow Line
+                        VStack {
+                            Spacer()
+                            Rectangle()
+                                .fill(Color.white.opacity(0.35))
+                                .frame(height: 1.5)
+                                .offset(y: -((130 * progress) - 6))
+                                .blur(radius: 1)
+                        }
+                        
+                        // 5. Glass Reflection Overlay
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.12),
+                                        Color.white.opacity(0.02),
+                                        Color.clear
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // 6. Central Interactive Readout Overlay
+                        HStack(spacing: 16) {
+                            // Glowing Big Lightning Bolt (Smartphone Style)
+                            ZStack {
+                                Circle()
+                                    .fill(isPlugged ? Color.liquidEmerald.opacity(0.25) : Color.white.opacity(0.08))
+                                    .frame(width: 58, height: 58)
+                                    .scaleEffect(isPlugged ? pulseScale : 1.0)
+                                    .blur(radius: isPlugged ? 4 : 0)
+                                
+                                Image(systemName: isPlugged ? "bolt.fill" : "battery.50")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(isPlugged ? Color.liquidEmerald : Color.white)
+                                    .shadow(color: isPlugged ? Color.liquidEmerald.opacity(boltGlow) : Color.clear, radius: 12)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                    Text("\(percent)%")
+                                        .font(.system(size: 38, weight: .black, design: .rounded))
+                                        .foregroundColor(.white)
+                                        .shadow(color: Color.black.opacity(0.4), radius: 6)
+                                    
+                                    Text(isPlugged ? "Carga en progreso" : "Nivel de Batería")
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .foregroundColor(Color.textSecondary)
+                                }
+                                
+                                Text(isPlugged ?
+                                     (isFullyCharged ? "Completado • Modo Bypass CA" : (isNearOptimizedLimit ? "Carga optimizada de macOS activa (Límite 80%/95%)" : "Iones de litio fluyendo hacia las 3 celdas")) :
+                                     "Consumo activo del sistema • Nivel líquido descendiendo gradualmente")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(isPlugged ? (isNearOptimizedLimit ? Color.liquidAmber : Color.textSecondary) : Color.textMuted)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                    }
+                    .frame(height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(
+                                isPlugged ?
+                                LinearGradient(colors: [Color.liquidEmerald.opacity(0.6), Color.liquidCyan.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                                LinearGradient(colors: [Color.white.opacity(0.20), Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                lineWidth: 1.5
+                            )
+                    )
+                    
+                    // Battery Positive Terminal Nub
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isPlugged ? Color.liquidCyan.opacity(0.6) : Color.white.opacity(0.15))
+                        .frame(width: 6, height: 38)
+                        .offset(x: 2)
+                }
+            }
+            
+            // Fila de 4 Tarjetas de Métricas Esenciales
+            HStack(spacing: 10) {
+                // 1. Nivel
+                metricDetailCard(
+                    title: "Nivel de Carga",
+                    value: "\(percent)%",
+                    subtitle: isPlugged ? "Recargando" : "Drenando",
+                    color: isPlugged ? Color.liquidEmerald : Color.liquidCyan
+                )
+                
+                // 2. Tiempo Estimado / Límite
+                let timeMinutes = service.snapshot.timeRemainingMinutes > 0 ? service.snapshot.timeRemainingMinutes : max(15, Int((100 - percent) * 75 / 100))
+                metricDetailCard(
+                    title: isPlugged ? "Tiempo al 100%" : "Autonomía",
+                    value: isPlugged ?
+                        (isFullyCharged ? "Completo" : (isNearOptimizedLimit ? "Límite 80%" : "~\(timeMinutes) m")) :
+                        String(format: "%dh %02dm", timeMinutes / 60, timeMinutes % 60),
+                    subtitle: isPlugged ? (isNearOptimizedLimit ? "Optimizado" : "Tasa Rápida") : "Estimado",
+                    color: isPlugged ? Color.liquidEmerald : Color.liquidAmber
+                )
+                
+                // 3. Temperatura
+                metricDetailCard(
+                    title: "Temperatura",
+                    value: String(format: "%.1f °C", temp),
+                    subtitle: "Rango Óptimo",
+                    color: Color.liquidCyan
+                )
+                
+                // 4. Salud y Ciclos
+                metricDetailCard(
+                    title: "Salud Máxima",
+                    value: "\(service.snapshot.maxCapacityPercent)%",
+                    subtitle: "\(service.snapshot.cycleCount) ciclos",
+                    color: Color.liquidAmber
+                )
+            }
+            
+            // Balance de las 3 Celdas de Litio (3S Balance)
             HStack(spacing: 12) {
+                let cellVoltages = service.snapshot.cellVoltages.isEmpty ? [3.830, 3.841, 3.829] : service.snapshot.cellVoltages
                 ForEach(0..<min(3, cellVoltages.count), id: \.self) { idx in
                     let volt = cellVoltages[idx]
-                    // Normalized cell level (3.2V = 0%, 4.2V = 100%)
                     let ratio = max(0.1, min(1.0, (volt - 3.2) / 1.0))
                     
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("Celda \(idx + 1)")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundColor(Color.textSecondary)
                             Spacer()
                             Text(String(format: "%.3f V", volt))
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundColor(Color.liquidCyan)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
                         }
                         
-                        // Animated Shimmer Bar
-                        GeometryReader { g in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color.white.opacity(0.08))
-                                
-                                // Base Fill
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.liquidCyan, Color.liquidEmerald],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: g.size.width * CGFloat(ratio))
-                                
-                                // Moving Shimmer Wave
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.clear, Color.white.opacity(0.7), Color.clear],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: g.size.width * 0.25)
-                                    .offset(x: (g.size.width * CGFloat(ratio)) * waveOffset)
-                                    .clipped()
-                            }
+                        // Mini Liquid Bar
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.08)).frame(height: 5)
+                            Capsule()
+                                .fill(
+                                    isPlugged ?
+                                    LinearGradient(colors: [Color.liquidCyan, Color.liquidEmerald], startPoint: .leading, endPoint: .trailing) :
+                                    LinearGradient(colors: [Color.liquidPink, Color.liquidCyan], startPoint: .leading, endPoint: .trailing)
+                                )
+                                .frame(width: 80 * CGFloat(ratio), height: 5)
                         }
-                        .frame(height: 8)
                     }
-                    .padding(12)
-                    .background(Color(hex: "0A0414").opacity(0.45))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(8)
+                    .background(Color(hex: "0A0414").opacity(0.40))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
         .padding(16)
-        .liquidGlassCard(cornerRadius: 16)
+        .liquidGlassCard(cornerRadius: 18)
     }
     
-    // MARK: - 7. Unplugged / Operating on Battery Card
-    private var unpluggedBatteryModeCard: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.03))
-                    .frame(width: 80, height: 80)
-                
-                Image(systemName: "battery.50")
-                    .font(.system(size: 38))
-                    .foregroundColor(Color.textMuted)
-            }
+    private func metricDetailCard(title: String, value: String, subtitle: String, color: Color) -> some View {
+        VStack(spacing: 3) {
+            Text(title)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(Color.textSecondary)
+                .lineLimit(1)
             
-            VStack(spacing: 6) {
-                Text(loc("charger_unplugged_title"))
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                
-                Text(loc("charger_unplugged_desc"))
-                    .font(.system(size: 12))
-                    .foregroundColor(Color.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-            }
+            Text(value)
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .foregroundColor(color)
+                .lineLimit(1)
             
-            // Battery Telemetry Overview on Battery
-            HStack(spacing: 14) {
-                VStack(spacing: 4) {
-                    Text("Nivel de Carga")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(Color.textSecondary)
-                    Text("\(service.snapshot.chargePercent)%")
-                        .font(.system(size: 18, weight: .heavy, design: .rounded))
-                        .foregroundColor(Color.liquidCyan)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity)
-                .background(Color(hex: "0A0414").opacity(0.40))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                VStack(spacing: 4) {
-                    Text("Temperatura")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(Color.textSecondary)
-                    Text(String(format: "%.1f °C", service.snapshot.temperature > 0 ? service.snapshot.temperature : 30.5))
-                        .font(.system(size: 18, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color.liquidEmerald)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity)
-                .background(Color(hex: "0A0414").opacity(0.40))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                VStack(spacing: 4) {
-                    Text("Salud")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(Color.textSecondary)
-                    Text("\(service.snapshot.maxCapacityPercent)%")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundColor(Color.liquidAmber)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity)
-                .background(Color(hex: "0A0414").opacity(0.40))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
+            Text(subtitle)
+                .font(.system(size: 9))
+                .foregroundColor(Color.textMuted)
+                .lineLimit(1)
         }
-        .padding(24)
-        .liquidGlassCard(cornerRadius: 18)
+        .padding(9)
+        .frame(maxWidth: .infinity)
+        .background(Color(hex: "0A0414").opacity(0.45))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
