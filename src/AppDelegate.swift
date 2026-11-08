@@ -85,9 +85,9 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.center()
-        window.setFrameAutosaveName("BatteryPulseMainWindow")
+        window.setFrameAutosaveName("BatteryScopeMainWindow")
         window.isReleasedWhenClosed = false
-        window.title = "BatteryPulse - Analizador de Batería"
+        window.title = "Battery Scope - Mac Analyzer"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.backgroundColor = NSColor(srgbRed: 0.055, green: 0.027, blue: 0.11, alpha: 1.0)

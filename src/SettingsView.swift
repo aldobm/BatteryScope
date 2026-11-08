@@ -290,7 +290,7 @@ public struct SettingsView: View {
             .padding(18)
             .liquidGlassCard(cornerRadius: 18)
             
-            // Section 3: About BatteryPulse & GitHub
+            // Section 3: About Battery Scope & GitHub
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
                     ZStack {
@@ -303,7 +303,7 @@ public struct SettingsView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("BatteryPulse Pro • macOS Native")
+                        Text("Battery Scope Pro • macOS Native")
                             .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         Text(loc("settings_about_desc"))

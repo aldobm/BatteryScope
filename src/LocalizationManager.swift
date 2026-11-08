@@ -48,7 +48,7 @@ public enum AppLanguage: String, CaseIterable, Identifiable {
 public final class LocalizationManager: ObservableObject {
     public static let shared = LocalizationManager()
     
-    private let userDefaultsKey = "battery_pulse_language"
+    private let userDefaultsKey = "battery_scope_language"
     
     @Published public var currentLanguage: AppLanguage {
         didSet {
@@ -87,7 +87,7 @@ public final class LocalizationManager: ObservableObject {
     private let strings: [AppLanguage: [String: String]] = [
         .english: [
             // App & Titles
-            "app_name": "BatteryPulse",
+            "app_name": "Battery Scope",
             "app_subtitle": "Mac Analyzer",
             "refresh": "Refresh",
             "updated_at": "Updated: %@",
@@ -219,7 +219,7 @@ public final class LocalizationManager: ObservableObject {
             
             // MenuBar Popover
             "open_analyzer": "Open Analyzer",
-            "close_app": "Quit BatteryPulse",
+            "close_app": "Quit Battery Scope",
             "battery_devourers": "Top Energy Consumers",
             "live_badge": "Live",
             "inactive_badge": "Idle",
@@ -228,7 +228,7 @@ public final class LocalizationManager: ObservableObject {
             "language": "Language",
             "select_language": "Select Language",
             "settings_lang_section": "Application Languages",
-            "settings_lang_note": "Select the primary display language for BatteryPulse. All technical diagnostics, system explanations, process charts, and menus will update in real time.",
+            "settings_lang_note": "Select the primary display language for Battery Scope. All technical diagnostics, system explanations, process charts, and menus will update in real time.",
             "settings_status_active": "Active",
             "settings_status_select": "Select Language",
             "settings_translation_coverage": "100% Translated",
@@ -243,7 +243,7 @@ public final class LocalizationManager: ObservableObject {
         
         .spanish: [
             // App & Titles
-            "app_name": "BatteryPulse",
+            "app_name": "Battery Scope",
             "app_subtitle": "Analizador Mac",
             "refresh": "Actualizar",
             "updated_at": "Actualizado: %@",
@@ -375,7 +375,7 @@ public final class LocalizationManager: ObservableObject {
             
             // MenuBar Popover
             "open_analyzer": "Abrir Analizador",
-            "close_app": "Cerrar BatteryPulse",
+            "close_app": "Cerrar Battery Scope",
             "battery_devourers": "Devoradores de Batería",
             "live_badge": "En vivo",
             "inactive_badge": "Inactivo",
@@ -384,7 +384,7 @@ public final class LocalizationManager: ObservableObject {
             "language": "Idioma",
             "select_language": "Seleccionar Idioma",
             "settings_lang_section": "Idiomas de la Aplicación",
-            "settings_lang_note": "Selecciona el idioma principal de BatteryPulse. Todos los diagnósticos técnicos, explicaciones del sistema, gráficos y menús se actualizarán en tiempo real.",
+            "settings_lang_note": "Selecciona el idioma principal de Battery Scope. Todos los diagnósticos técnicos, explicaciones del sistema, gráficos y menús se actualizarán en tiempo real.",
             "settings_status_active": "Activo",
             "settings_status_select": "Seleccionar Idioma",
             "settings_translation_coverage": "Traducción Completa",
@@ -398,7 +398,7 @@ public final class LocalizationManager: ObservableObject {
         ],
         
         .french: [
-            "app_name": "BatteryPulse",
+            "app_name": "Battery Scope",
             "app_subtitle": "Analyseur Mac",
             "refresh": "Actualiser",
             "updated_at": "Mis à jour: %@",
@@ -506,14 +506,14 @@ public final class LocalizationManager: ObservableObject {
             "comp_audio": "Système audio",
             "comp_motherboard": "Carte logique & USB-C",
             "open_analyzer": "Ouvrir l'analyseur",
-            "close_app": "Quitter BatteryPulse",
+            "close_app": "Quitter Battery Scope",
             "battery_devourers": "Consommateurs d'énergie",
             "live_badge": "En direct",
             "inactive_badge": "Inactif",
             "language": "Langue",
             "select_language": "Sélectionner la langue",
             "settings_lang_section": "Langues de l'application",
-            "settings_lang_note": "Sélectionnez la langue principale de BatteryPulse. Tous les diagnostics techniques, explications et menus se mettront à jour en temps réel.",
+            "settings_lang_note": "Sélectionnez la langue principale de Battery Scope. Tous les diagnostics techniques, explications et menus se mettront à jour en temps réel.",
             "settings_status_active": "Actif",
             "settings_status_select": "Sélectionner la langue",
             "settings_translation_coverage": "Traduction Complète",
@@ -527,7 +527,7 @@ public final class LocalizationManager: ObservableObject {
         ],
         
         .german: [
-            "app_name": "BatteryPulse",
+            "app_name": "Battery Scope",
             "app_subtitle": "Mac-Analyse",
             "refresh": "Aktualisieren",
             "updated_at": "Aktualisiert: %@",
@@ -635,14 +635,14 @@ public final class LocalizationManager: ObservableObject {
             "comp_audio": "Audiosystem",
             "comp_motherboard": "Hauptplatine & USB-C",
             "open_analyzer": "Analyzer öffnen",
-            "close_app": "BatteryPulse beenden",
+            "close_app": "Battery Scope beenden",
             "battery_devourers": "Top-Energiefresser",
             "live_badge": "Live",
             "inactive_badge": "Inaktiv",
             "language": "Sprache",
             "select_language": "Sprache auswählen",
             "settings_lang_section": "App-Sprachen",
-            "settings_lang_note": "Wählen Sie die Hauptsprache für BatteryPulse. Alle technischen Diagnosen und Systemerklärungen werden in Echtzeit aktualisiert.",
+            "settings_lang_note": "Wählen Sie die Hauptsprache für Battery Scope. Alle technischen Diagnosen und Systemerklärungen werden in Echtzeit aktualisiert.",
             "settings_status_active": "Aktiv",
             "settings_status_select": "Sprache auswählen",
             "settings_translation_coverage": "Vollständig übersetzt",
@@ -656,7 +656,7 @@ public final class LocalizationManager: ObservableObject {
         ],
         
         .portuguese: [
-            "app_name": "BatteryPulse",
+            "app_name": "Battery Scope",
             "app_subtitle": "Analisador Mac",
             "refresh": "Atualizar",
             "updated_at": "Atualizado: %@",
@@ -764,14 +764,14 @@ public final class LocalizationManager: ObservableObject {
             "comp_audio": "Sistema de Áudio",
             "comp_motherboard": "Placa Lógica & USB-C",
             "open_analyzer": "Abrir Analisador",
-            "close_app": "Encerrar BatteryPulse",
+            "close_app": "Encerrar Battery Scope",
             "battery_devourers": "Maiores Consumidores",
             "live_badge": "Ao vivo",
             "inactive_badge": "Inativo",
             "language": "Idioma",
             "select_language": "Selecionar Idioma",
             "settings_lang_section": "Idiomas do Aplicativo",
-            "settings_lang_note": "Selecione o idioma principal do BatteryPulse. Todos os diagnósticos técnicos e menus serão atualizados em tempo real.",
+            "settings_lang_note": "Selecione o idioma principal do Battery Scope. Todos os diagnósticos técnicos e menus serão atualizados em tempo real.",
             "settings_status_active": "Ativo",
             "settings_status_select": "Selecionar Idioma",
             "settings_translation_coverage": "Tradução Completa",
@@ -785,7 +785,7 @@ public final class LocalizationManager: ObservableObject {
         ],
         
         .italian: [
-            "app_name": "BatteryPulse",
+            "app_name": "Battery Scope",
             "app_subtitle": "Analizzatore Mac",
             "refresh": "Aggiorna",
             "updated_at": "Aggiornato: %@",
@@ -893,14 +893,14 @@ public final class LocalizationManager: ObservableObject {
             "comp_audio": "Sistema Audio",
             "comp_motherboard": "Scheda Logica & USB-C",
             "open_analyzer": "Apri Analizzatore",
-            "close_app": "Chiudi BatteryPulse",
+            "close_app": "Chiudi Battery Scope",
             "battery_devourers": "Maggiori Consumatori",
             "live_badge": "In diretta",
             "inactive_badge": "Inattivo",
             "language": "Lingua",
             "select_language": "Seleziona Lingua",
             "settings_lang_section": "Lingue dell'applicazione",
-            "settings_lang_note": "Seleziona la lingua principale di BatteryPulse. Tutte le diagnosi tecniche e i menu si aggiorneranno in tempo reale.",
+            "settings_lang_note": "Seleziona la lingua principale di Battery Scope. Tutte le diagnosi tecniche e i menu si aggiorneranno in tempo reale.",
             "settings_status_active": "Attivo",
             "settings_status_select": "Seleziona Lingua",
             "settings_translation_coverage": "Traduzione Completa",
@@ -914,7 +914,7 @@ public final class LocalizationManager: ObservableObject {
         ],
         
         .japanese: [
-            "app_name": "BatteryPulse",
+            "app_name": "Battery Scope",
             "app_subtitle": "Mac アナライザー",
             "refresh": "更新",
             "updated_at": "更新日時: %@",
@@ -1022,14 +1022,14 @@ public final class LocalizationManager: ObservableObject {
             "comp_audio": "オーディオシステム",
             "comp_motherboard": "ロジックボード & USB-C",
             "open_analyzer": "アナライザーを開く",
-            "close_app": "BatteryPulse を終了",
+            "close_app": "Battery Scope を終了",
             "battery_devourers": "高エネルギー消費プロセス",
             "live_badge": "ライブ",
             "inactive_badge": "待機中",
             "language": "言語",
             "select_language": "言語を選択",
             "settings_lang_section": "アプリケーションの言語",
-            "settings_lang_note": "BatteryPulseの表示言語を選択してください。すべての技術診断、システム説明、グラフ、メニューがリアルタイムで更新されます。",
+            "settings_lang_note": "Battery Scopeの表示言語を選択してください。すべての技術診断、システム説明、グラフ、メニューがリアルタイムで更新されます。",
             "settings_status_active": "適用中",
             "settings_status_select": "言語を選択",
             "settings_translation_coverage": "完全ネイティブ対応",

@@ -209,8 +209,6 @@ public struct MainView: View {
                         Spacer()
                         
                         HStack(spacing: 12) {
-                            LanguageFlagPickerMenu()
-                            
                             if selectedSection == .todayConsumption {
                                 Button(action: {
                                     withAnimation(.spring(response: 0.22)) {

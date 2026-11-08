@@ -1,7 +1,7 @@
-# ⚡ BatteryPulse — macOS Native Battery & Power Analyzer
+# ⚡ Battery Scope — macOS Native Battery & Power Analyzer
 
 <p align="center">
-  <img src="AppIcon.icns" width="128" height="128" alt="BatteryPulse Icon" />
+  <img src="AppIcon.icns" width="128" height="128" alt="Battery Scope Icon" />
 </p>
 
 <p align="center">
@@ -68,20 +68,20 @@
 Clone this repository and run the standalone build script:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/BatteryPulse.git
-cd BatteryPulse
+git clone https://github.com/YOUR_USERNAME/BatteryScope.git
+cd BatteryScope
 chmod +x build.sh
 ./build.sh
 ```
 
 The script compiles the native Swift application with the macOS SDK, signs it ad-hoc, and installs it to:
 ```
-~/Applications/BatteryPulse.app
+~/Applications/BatteryScope.app
 ```
 
 You can then launch it from Spotlight, Finder, or Terminal:
 ```bash
-open -a ~/Applications/BatteryPulse.app
+open -a ~/Applications/BatteryScope.app
 ```
 
 ---
@@ -89,7 +89,7 @@ open -a ~/Applications/BatteryPulse.app
 ## 📂 Project Architecture
 
 ```
-BatteryPulse/
+BatteryScope/
 ├── AppIcon.icns                # App icon bundle
 ├── build.sh                    # Build and packaging automation script
 ├── .gitignore                  # Git exclusions

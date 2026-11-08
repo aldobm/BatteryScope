@@ -381,7 +381,7 @@ public struct SmartSyncAdvisorCardView: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.white)
                         }
-                        Text("• **mds y mds_stores (Spotlight):** Indexa cada archivo de 'node_modules'. Solución: Añade tu carpeta de proyectos a 'Privacidad de Spotlight' en Ajustes de macOS.\n• **fileproviderd:** Coordinador de Apple que se atasca si hay más de 50,000 microarchivos. Pausarlo con BatteryPulse restablece el reposo del sistema.\n• **Docker Desktop:** Si tiene montadas carpetas de sincronización compartidas, multiplica el consumo por 3. Mantenlo apagado cuando no lo uses.")
+                        Text("• **mds y mds_stores (Spotlight):** Indexa cada archivo de 'node_modules'. Solución: Añade tu carpeta de proyectos a 'Privacidad de Spotlight' en Ajustes de macOS.\n• **fileproviderd:** Coordinador de Apple que se atasca si hay más de 50,000 microarchivos. Pausarlo con Battery Scope restablece el reposo del sistema.\n• **Docker Desktop:** Si tiene montadas carpetas de sincronización compartidas, multiplica el consumo por 3. Mantenlo apagado cuando no lo uses.")
                             .font(.system(size: 11))
                             .foregroundColor(Color(hex: "E0D4F7"))
                             .lineSpacing(2)

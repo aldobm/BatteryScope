@@ -2,7 +2,7 @@
 set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-APP_NAME="BatteryPulse"
+APP_NAME="BatteryScope"
 APP_BUNDLE="$DIR/build/$APP_NAME.app"
 CONTENTS="$APP_BUNDLE/Contents"
 MACOS="$CONTENTS/MacOS"
@@ -26,17 +26,17 @@ cat << 'EOF' > "$CONTENTS/Info.plist"
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>BatteryPulse</string>
+    <string>BatteryScope</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>com.aldo.BatteryPulse</string>
+    <string>com.aldo.BatteryScope</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>BatteryPulse</string>
+    <string>Battery Scope</string>
     <key>CFBundleDisplayName</key>
-    <string>BatteryPulse</string>
+    <string>Battery Scope</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

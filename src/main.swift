@@ -1,7 +1,7 @@
 import Cocoa
 
 @main
-struct BatteryPulseApp {
+struct BatteryScopeApp {
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()

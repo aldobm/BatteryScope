@@ -483,7 +483,7 @@ private struct StartupItemRowView: View {
                                 .font(.system(size: 12))
                                 .padding(.top, 2)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Recomendación de BatteryPulse")
+                                Text("Recomendación de Battery Scope")
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
                                     .foregroundColor(.white)
                                 Text(item.recommendation)

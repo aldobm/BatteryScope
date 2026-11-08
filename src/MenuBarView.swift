@@ -95,7 +95,7 @@ public struct MenuBarView: View {
             .liquidGlassCard(cornerRadius: 14)
             
             // Bottom Action Buttons
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Button(action: onOpenMainWindow) {
                     HStack(spacing: 6) {
                         Image(systemName: "macwindow.on.rectangle")
@@ -117,8 +117,6 @@ public struct MenuBarView: View {
                 }
                 .buttonStyle(.plain)
                 
-                LanguageFlagPickerMenu()
-                
                 Button(action: onQuit) {
                     Image(systemName: "power")
                         .font(.system(size: 13, weight: .bold))
@@ -132,7 +130,7 @@ public struct MenuBarView: View {
             }
         }
         .padding(14)
-        .frame(width: 330)
+        .frame(width: 320)
         .background(
             ZStack {
                 Color.liquidDarkBg
