@@ -20,7 +20,7 @@ public struct WaterWaveShape: Shape {
         var path = Path()
         let width = rect.width
         let height = rect.height
-        let clampedProgress = max(0.02, min(0.98, progress))
+        let clampedProgress = max(0.04, min(0.96, progress))
         let waterY = height * (1.0 - clampedProgress)
         
         path.move(to: CGPoint(x: 0, y: height))
@@ -62,17 +62,17 @@ public struct ChargerView: View {
     
     public var body: some View {
         VStack(spacing: 16) {
-            // 1. PANEL SUPERIOR: Cargador USB-C (Se enciende si está conectado)
+            // 1. PANEL SUPERIOR: Cargador USB-C (Tamaño fijo, no crece de más)
             chargerSourcePanel
             
-            // 2. ENTRE AMBOS: Línea animada de Transferencia Energética con Potencia y Amperaje
+            // 2. ENTRE AMBOS: Línea animada de Transferencia Energética
             energyTransferBridge
             
-            // 3. PANEL INFERIOR: Batería del Sistema (Agua líquida ondulante + Métricas enfocadas)
+            // 3. PANEL INFERIOR: Batería del Sistema (Agua líquida ondulante + Texto legible + Terminal + Colores de celdas)
             fluidSystemBatteryPanel
         }
         .onReceive(animationTimer) { _ in
-            wavePhase += 0.08
+            wavePhase += 0.075
             if wavePhase >= .pi * 2 { wavePhase = 0 }
             
             if service.snapshot.isExternalConnected {
@@ -87,7 +87,7 @@ public struct ChargerView: View {
         }
     }
     
-    // MARK: - 1. Panel Superior: Adaptador de Corriente USB-C
+    // MARK: - 1. Panel Superior: Adaptador de Corriente USB-C (Tamaño Fijo y Compacto)
     private var chargerSourcePanel: some View {
         let isPlugged = service.snapshot.isExternalConnected
         let watts = service.snapshot.adapterWatts > 0 ? service.snapshot.adapterWatts : (isPlugged ? 20 : 0)
@@ -99,29 +99,33 @@ public struct ChargerView: View {
             "Adaptador de Corriente USB-C"
         
         return VStack(spacing: 14) {
-            // Header del panel
+            // Header del panel con icono compacto y tamaño delimitado
             HStack(spacing: 14) {
+                // Icono con círculo pulsante PEQUEÑO (delimitado a 50x50 para no deformar el panel)
                 ZStack {
                     Circle()
                         .fill(isPlugged ? Color.liquidAmber.opacity(0.22) : Color.white.opacity(0.04))
-                        .frame(width: 50, height: 50)
+                        .frame(width: 48, height: 48)
                     
                     if isPlugged {
                         Circle()
-                            .stroke(Color.liquidAmber.opacity(0.45), lineWidth: 1.5)
+                            .stroke(Color.liquidAmber.opacity(0.50), lineWidth: 1.5)
+                            .frame(width: 48, height: 48)
                             .scaleEffect(pulseScale)
                     }
                     
                     Image(systemName: isPlugged ? "powerplug.fill" : "powerplug")
                         .foregroundColor(isPlugged ? Color.liquidAmber : Color.textMuted)
-                        .font(.system(size: 22))
+                        .font(.system(size: 20))
                 }
+                .frame(width: 52, height: 52)
                 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(adapterName)
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(isPlugged ? .white : Color.textMuted)
+                            .lineLimit(1)
                         
                         // Estado Activo / Apagado
                         Text(isPlugged ? "ACTIVO" : "APAGADO")
@@ -136,6 +140,7 @@ public struct ChargerView: View {
                     Text(isPlugged ? String(format: loc("adapter_manufacturer"), manufacturer) + " • Puerto Thunderbolt" : "Sin cargador conectado • Operando con batería")
                         .font(.system(size: 11))
                         .foregroundColor(Color.textSecondary)
+                        .lineLimit(1)
                 }
                 
                 Spacer()
@@ -184,7 +189,7 @@ public struct ChargerView: View {
             }
         }
         .padding(16)
-        .liquidGlassCard(cornerRadius: 18, glowColor: isPlugged ? Color.liquidAmber.opacity(0.20) : Color.clear)
+        .liquidGlassCard(cornerRadius: 18, glowColor: isPlugged ? Color.liquidAmber.opacity(0.18) : Color.clear)
     }
     
     private func panelMetricCard(title: String, value: String, isPlugged: Bool, color: Color) -> some View {
@@ -248,6 +253,7 @@ public struct ChargerView: View {
                         .foregroundColor(Color.textMuted)
                 }
             }
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 14)
             .padding(.vertical, 5)
             .background(
@@ -269,7 +275,7 @@ public struct ChargerView: View {
         .padding(.horizontal, 10)
     }
     
-    // MARK: - 3. Panel Inferior: Batería del Sistema (Agua Líquida Ondulante)
+    // MARK: - 3. Panel Inferior: Batería del Sistema (Agua Líquida + Texto de Alto Contraste + Terminal Positivo + Celdas en Cian/Azul)
     private var fluidSystemBatteryPanel: some View {
         let isPlugged = service.snapshot.isExternalConnected
         let percent = service.snapshot.chargePercent
@@ -277,6 +283,16 @@ public struct ChargerView: View {
         let temp = service.snapshot.temperature > 0 ? service.snapshot.temperature : 30.2
         let isFullyCharged = service.snapshot.isFullyCharged || percent >= 100
         let isNearOptimizedLimit = percent >= 80 && percent < 100
+        
+        // Realistic Mac Laptop Autonomy Calculation
+        let realisticAutonomyMinutes: Int = {
+            if service.snapshot.timeRemainingMinutes > 30 && service.snapshot.timeRemainingMinutes < 1200 {
+                return service.snapshot.timeRemainingMinutes
+            } else {
+                // Apple Silicon typical battery life curve (~10-12 hours total)
+                return max(45, Int(Double(percent) * 6.5))
+            }
+        }()
         
         return VStack(spacing: 16) {
             // Header del Panel de Batería
@@ -309,141 +325,173 @@ public struct ChargerView: View {
                 .clipShape(Capsule())
             }
             
-            // TANQUE DE BATERÍA ESTILIZADO CON AGUA LÍQUIDA ONDULANTE
-            ZStack(alignment: .trailing) {
-                // Main Battery Crystal Tank Body
-                HStack(spacing: 0) {
-                    ZStack(alignment: .bottom) {
-                        // 1. Tank Background Dark Bed
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color(hex: "080313").opacity(0.75))
-                        
-                        // 2. Liquid Layer 1 (Back Wave - Translucent)
-                        WaterWaveShape(progress: progress, waveHeight: 7, phase: wavePhase + .pi)
-                            .fill(
-                                isPlugged ?
-                                LinearGradient(
-                                    colors: [Color.liquidEmerald.opacity(0.40), Color.liquidCyan.opacity(0.25)],
-                                    startPoint: .bottom,
-                                    endPoint: .top
-                                ) :
-                                LinearGradient(
-                                    colors: [Color.liquidPurple.opacity(0.45), Color.liquidBlue.opacity(0.30)],
-                                    startPoint: .bottom,
-                                    endPoint: .top
-                                )
-                            )
-                        
-                        // 3. Liquid Layer 2 (Front Wave - Vibrant Colorful Fluid)
-                        WaterWaveShape(progress: progress, waveHeight: 9, phase: wavePhase)
-                            .fill(
-                                isPlugged ?
-                                LinearGradient(
-                                    colors: [
-                                        Color(hex: "00B4D8"),
-                                        Color.liquidCyan,
-                                        Color.liquidEmerald
-                                    ],
-                                    startPoint: .bottomLeading,
-                                    endPoint: .topTrailing
-                                ) :
-                                LinearGradient(
-                                    colors: [
-                                        Color(hex: "560BAD"),
-                                        Color(hex: "7209B7"),
-                                        Color.liquidPink,
-                                        Color.liquidCyan
-                                    ],
-                                    startPoint: .bottomLeading,
-                                    endPoint: .topTrailing
-                                )
-                            )
-                        
-                        // 4. Subtle Surface Specular Glow Line
-                        VStack {
-                            Spacer()
-                            Rectangle()
-                                .fill(Color.white.opacity(0.35))
-                                .frame(height: 1.5)
-                                .offset(y: -((130 * progress) - 6))
-                                .blur(radius: 1)
-                        }
-                        
-                        // 5. Glass Reflection Overlay
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.12),
-                                        Color.white.opacity(0.02),
-                                        Color.clear
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                        
-                        // 6. Central Interactive Readout Overlay
-                        HStack(spacing: 16) {
-                            // Glowing Big Lightning Bolt (Smartphone Style)
-                            ZStack {
-                                Circle()
-                                    .fill(isPlugged ? Color.liquidEmerald.opacity(0.25) : Color.white.opacity(0.08))
-                                    .frame(width: 58, height: 58)
-                                    .scaleEffect(isPlugged ? pulseScale : 1.0)
-                                    .blur(radius: isPlugged ? 4 : 0)
-                                
-                                Image(systemName: isPlugged ? "bolt.fill" : "battery.50")
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundColor(isPlugged ? Color.liquidEmerald : Color.white)
-                                    .shadow(color: isPlugged ? Color.liquidEmerald.opacity(boltGlow) : Color.clear, radius: 12)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                    Text("\(percent)%")
-                                        .font(.system(size: 38, weight: .black, design: .rounded))
-                                        .foregroundColor(.white)
-                                        .shadow(color: Color.black.opacity(0.4), radius: 6)
-                                    
-                                    Text(isPlugged ? "Carga en progreso" : "Nivel de Batería")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                        .foregroundColor(Color.textSecondary)
-                                }
-                                
-                                Text(isPlugged ?
-                                     (isFullyCharged ? "Completado • Modo Bypass CA" : (isNearOptimizedLimit ? "Carga optimizada de macOS activa (Límite 80%/95%)" : "Iones de litio fluyendo hacia las 3 celdas")) :
-                                     "Consumo activo del sistema • Nivel líquido descendiendo gradualmente")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(isPlugged ? (isNearOptimizedLimit ? Color.liquidAmber : Color.textSecondary) : Color.textMuted)
-                            }
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 14)
-                    }
-                    .frame(height: 120)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(
-                                isPlugged ?
-                                LinearGradient(colors: [Color.liquidEmerald.opacity(0.6), Color.liquidCyan.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                                LinearGradient(colors: [Color.white.opacity(0.20), Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                                lineWidth: 1.5
-                            )
-                    )
+            // TANQUE DE BATERÍA ESTILIZADO CON AGUA LÍQUIDA Y CONECTOR POSITIVO MARCADO
+            HStack(spacing: 4) {
+                // Tank Body
+                ZStack(alignment: .bottom) {
+                    // 1. Tank Background Dark Bed
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(hex: "080313").opacity(0.80))
                     
-                    // Battery Positive Terminal Nub
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(isPlugged ? Color.liquidCyan.opacity(0.6) : Color.white.opacity(0.15))
-                        .frame(width: 6, height: 38)
-                        .offset(x: 2)
+                    // 2. Liquid Layer 1 (Back Wave - Translucent depth)
+                    WaterWaveShape(progress: progress, waveHeight: 7, phase: wavePhase + .pi)
+                        .fill(
+                            isPlugged ?
+                            LinearGradient(
+                                colors: [Color.liquidEmerald.opacity(0.40), Color.liquidCyan.opacity(0.25)],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            ) :
+                            LinearGradient(
+                                colors: [Color(hex: "0077B6").opacity(0.35), Color.liquidCyan.opacity(0.20)],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            )
+                        )
+                    
+                    // 3. Liquid Layer 2 (Front Wave - Vibrant Colorful Fluid)
+                    WaterWaveShape(progress: progress, waveHeight: 9, phase: wavePhase)
+                        .fill(
+                            isPlugged ?
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "00B4D8"),
+                                    Color.liquidCyan,
+                                    Color.liquidEmerald
+                                ],
+                                startPoint: .bottomLeading,
+                                endPoint: .topTrailing
+                            ) :
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "03045E"),
+                                    Color(hex: "0077B6"),
+                                    Color(hex: "00B4D8"),
+                                    Color.liquidCyan
+                                ],
+                                startPoint: .bottomLeading,
+                                endPoint: .topTrailing
+                            )
+                        )
+                    
+                    // 4. Subtle Surface Specular Glow Line
+                    VStack {
+                        Spacer()
+                        Rectangle()
+                            .fill(Color.white.opacity(0.40))
+                            .frame(height: 1.5)
+                            .offset(y: -((130 * progress) - 6))
+                            .blur(radius: 1)
+                    }
+                    
+                    // 5. Glass Reflection Overlay
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.12),
+                                    Color.white.opacity(0.02),
+                                    Color.clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    // 6. Central High-Contrast Readout Overlay (Readable on any background)
+                    HStack(spacing: 16) {
+                        // Glowing Lightning Bolt (Smartphone Style)
+                        ZStack {
+                            Circle()
+                                .fill(isPlugged ? Color.liquidEmerald.opacity(0.25) : Color.white.opacity(0.08))
+                                .frame(width: 52, height: 52)
+                                .scaleEffect(isPlugged ? pulseScale : 1.0)
+                                .blur(radius: isPlugged ? 2 : 0)
+                            
+                            Image(systemName: isPlugged ? "bolt.fill" : "battery.50")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(isPlugged ? Color.liquidEmerald : Color.white)
+                                .shadow(color: isPlugged ? Color.liquidEmerald.opacity(boltGlow) : Color.clear, radius: 10)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(alignment: .center, spacing: 8) {
+                                Text("\(percent)%")
+                                    .font(.system(size: 38, weight: .black, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .shadow(color: Color.black.opacity(0.9), radius: 6, x: 0, y: 2)
+                                
+                                // High Contrast Badge
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
+                                        .frame(width: 6, height: 6)
+                                    Text(isPlugged ? "Carga Rápida en Progreso" : "Modo Batería Activo")
+                                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                                        .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
+                                }
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(Color(hex: "06020E").opacity(0.85))
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().strokeBorder(isPlugged ? Color.liquidEmerald.opacity(0.4) : Color.liquidCyan.opacity(0.3), lineWidth: 1)
+                                )
+                            }
+                            
+                            // High contrast readable description
+                            Text(isPlugged ?
+                                 (isFullyCharged ? "Batería Completa • Modo Alimentación Directa por CA" : (isNearOptimizedLimit ? "⚡ Recarga Optimizada de macOS activa (Límite al 80%/95%)" : "Iones de litio fluyendo hacia las celdas")) :
+                                 "Operando con batería interna • Descarga gradual del sistema")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white)
+                                .shadow(color: Color.black.opacity(0.9), radius: 4, x: 0, y: 1)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "06020E").opacity(0.70))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                }
+                .frame(height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(
+                            isPlugged ?
+                            LinearGradient(colors: [Color.liquidEmerald.opacity(0.6), Color.liquidCyan.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                            LinearGradient(colors: [Color.white.opacity(0.20), Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: 1.5
+                        )
+                )
+                
+                // Conector Positivo Prominente y Auténtico (+ Terminal)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(
+                            isPlugged ?
+                            LinearGradient(colors: [Color.liquidCyan, Color.liquidEmerald], startPoint: .top, endPoint: .bottom) :
+                            LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0.15)], startPoint: .top, endPoint: .bottom)
+                        )
+                        .frame(width: 14, height: 50)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .strokeBorder(isPlugged ? Color.liquidCyan.opacity(0.8) : Color.white.opacity(0.25), lineWidth: 1)
+                        )
+                        .shadow(color: isPlugged ? Color.liquidCyan.opacity(0.6) : Color.clear, radius: 6)
+                    
+                    // Signo + grabado en el polo positivo
+                    Text("+")
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .foregroundColor(isPlugged ? Color(hex: "080313") : Color.white)
                 }
             }
             
-            // Fila de 4 Tarjetas de Métricas Esenciales
+            // Fila de 4 Tarjetas de Métricas Esenciales con Autonomía Corregida
             HStack(spacing: 10) {
                 // 1. Nivel
                 metricDetailCard(
@@ -453,8 +501,11 @@ public struct ChargerView: View {
                     color: isPlugged ? Color.liquidEmerald : Color.liquidCyan
                 )
                 
-                // 2. Tiempo Estimado / Límite
-                let timeMinutes = service.snapshot.timeRemainingMinutes > 0 ? service.snapshot.timeRemainingMinutes : max(15, Int((100 - percent) * 75 / 100))
+                // 2. Autonomía Real (Corregida)
+                let timeMinutes = isPlugged ?
+                    (service.snapshot.timeRemainingMinutes > 0 ? service.snapshot.timeRemainingMinutes : max(15, Int((100 - percent) * 75 / 100))) :
+                    realisticAutonomyMinutes
+                
                 metricDetailCard(
                     title: isPlugged ? "Tiempo al 100%" : "Autonomía",
                     value: isPlugged ?
@@ -481,7 +532,7 @@ public struct ChargerView: View {
                 )
             }
             
-            // Balance de las 3 Celdas de Litio (3S Balance)
+            // Balance de las 3 Celdas de Litio (3S Balance) con Colores Saludables Cian/Azul en Batería
             HStack(spacing: 12) {
                 let cellVoltages = service.snapshot.cellVoltages.isEmpty ? [3.830, 3.841, 3.829] : service.snapshot.cellVoltages
                 ForEach(0..<min(3, cellVoltages.count), id: \.self) { idx in
@@ -499,16 +550,17 @@ public struct ChargerView: View {
                                 .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
                         }
                         
-                        // Mini Liquid Bar
+                        // Mini Liquid Bar con Colores Saludables (Cian Eléctrico y Azul Azure en Batería, Verde Esmeralda en Carga)
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.08)).frame(height: 5)
                             Capsule()
                                 .fill(
                                     isPlugged ?
                                     LinearGradient(colors: [Color.liquidCyan, Color.liquidEmerald], startPoint: .leading, endPoint: .trailing) :
-                                    LinearGradient(colors: [Color.liquidPink, Color.liquidCyan], startPoint: .leading, endPoint: .trailing)
+                                    LinearGradient(colors: [Color(hex: "0077B6"), Color(hex: "00B4D8"), Color.liquidCyan], startPoint: .leading, endPoint: .trailing)
                                 )
                                 .frame(width: 80 * CGFloat(ratio), height: 5)
+                                .shadow(color: isPlugged ? Color.liquidEmerald.opacity(0.4) : Color.liquidCyan.opacity(0.3), radius: 2)
                         }
                     }
                     .padding(8)
