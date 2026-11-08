@@ -25,6 +25,7 @@
   <img src="https://img.shields.io/badge/Plataforma-macOS%2013%2B-5856D6?style=for-the-badge&logo=apple" alt="Plataforma" />
   <img src="https://img.shields.io/badge/Arquitectura-Apple%20Silicon%20%7C%20Intel-AF52DE?style=for-the-badge" alt="Arquitectura" />
   <img src="https://img.shields.io/badge/Swift-5.10%20%2F%206.0-F05138?style=for-the-badge&logo=swift" alt="Swift" />
+  <img src="https://img.shields.io/badge/IA-Asesor%20Inteligente-FF2D55?style=for-the-badge" alt="Asesor Inteligente" />
   <img src="https://img.shields.io/badge/UI-SwiftUI%20Liquid-34C759?style=for-the-badge" alt="SwiftUI" />
   <img src="https://img.shields.io/badge/Licencia-MIT-FF9500?style=for-the-badge" alt="Licencia" />
 </p>
@@ -53,6 +54,21 @@ Descarga directamente el instalador oficial listo para usar:
 <p align="center">
   <img src="docs/screenshots/01_smart_analysis.jpg" alt="Panel de Análisis Inteligente Battery Scope" width="95%" />
 </p>
+
+---
+
+### 🧠 Diagnóstico Inteligente y Recomendaciones Automáticas
+
+A diferencia de los monitores de tareas tradicionales que solo muestran números crudos y PIDs crípticos, Battery Scope **analiza la causa raíz del consumo y te brinda recomendaciones automáticas y prácticas para ahorrar batería**:
+
+<p align="center">
+  <img src="docs/screenshots/smart_recommendations.jpg" alt="Recomendaciones Automáticas Inteligentes" width="95%" />
+</p>
+
+- ℹ️ **Función del Proceso en macOS:** Explica exactamente qué hace el daemon (`WindowServer`, `fileproviderd`, `siriactionsd`, etc.) en lenguaje claro y accesible.
+- ❓ **¿Por qué está activo?:** Diagnostica la causa que disparó el consumo (ej. alta densidad de ventanas, reproducción de video, o pantallas externas).
+- 💡 **¿Qué deberías hacer?:** Acciones recomendadas concretas y seguras para reducir el drenaje al instante sin romper el sistema operativo ni cerrar apps bruscamente.
+- 📊 **Curva de Consumo Temporal:** Vatios instantáneos, energía total acumulada en mWh, carga de hilos de CPU y porcentaje de cuota sobre la batería.
 
 ---
 
@@ -97,6 +113,8 @@ Descarga directamente el instalador oficial listo para usar:
 
 ## ✨ Características Principales
 
+- **🧠 Diagnóstico Inteligente y Recomendaciones Automáticas**:
+  - Base de conocimientos integrada para más de 30 daemons de macOS que responde a *¿Por qué está activo?* y *¿Qué deberías hacer?* con consejos prácticos de ahorro de energía.
 - **🔋 Telemetría Inteligente de Batería en Vivo**:
   - Monitoreo en tiempo real de potencia en vatios (W), voltaje (V) y amperaje (A).
   - Balance de voltaje individual de las 3 celdas de la batería.
@@ -109,7 +127,6 @@ Descarga directamente el instalador oficial listo para usar:
 - **🔥 Drenaje por Procesos y Aplicaciones Voraces**:
   - Clasificación de aplicaciones por cuota de consumo, hilos de CPU y milivatios (mW).
   - Curva de consumo temporal por proceso individual.
-  - Base de conocimientos integrada con explicaciones en español para más de 30 procesos de sistema.
 - **🛑 Control Inteligente de Procesos (Pausar / Reanudar)**:
   - Pausa temporalmente procesos pesados en segundo plano (`Google Drive`, `Synology Drive`, `fileproviderd`) mediante señales Unix (`SIGSTOP`/`SIGCONT`) sin cerrarlos ni perder tu trabajo.
 - **🚀 Auditoría de Apps de Arranque**:

@@ -25,6 +25,7 @@
   <img src="https://img.shields.io/badge/Platform-macOS%2013%2B-5856D6?style=for-the-badge&logo=apple" alt="Platform" />
   <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-AF52DE?style=for-the-badge" alt="Architecture" />
   <img src="https://img.shields.io/badge/Swift-5.10%20%2F%206.0-F05138?style=for-the-badge&logo=swift" alt="Swift" />
+  <img src="https://img.shields.io/badge/AI-Smart%20Advisor-FF2D55?style=for-the-badge" alt="Smart Advisor" />
   <img src="https://img.shields.io/badge/UI-SwiftUI%20Liquid-34C759?style=for-the-badge" alt="SwiftUI" />
   <img src="https://img.shields.io/badge/License-MIT-FF9500?style=for-the-badge" alt="License" />
 </p>
@@ -53,6 +54,21 @@ Download the ready-to-run native installer directly:
 <p align="center">
   <img src="docs/screenshots/01_smart_analysis.jpg" alt="Battery Scope Smart Analysis" width="95%" />
 </p>
+
+---
+
+### 🧠 Automated Intelligent Recommendations & Process Inspector
+
+Unlike standard task managers that just show cryptic numbers and PIDs, Battery Scope actively **analyzes the root cause of energy drain and gives you automated, actionable recommendations**:
+
+<p align="center">
+  <img src="docs/screenshots/smart_recommendations.jpg" alt="Automated Smart Recommendations" width="95%" />
+</p>
+
+- ℹ️ **Process Role in macOS**: Explains what the daemon actually does (e.g. `WindowServer` compositing, `fileproviderd` syncing, `siriactionsd` background requests).
+- ❓ **Why is it active?**: Automatically pinpoints the triggering cause (high window density, video streams, or external displays).
+- 💡 **What should you do?**: Concrete, non-destructive recommendations to immediately reduce power consumption and reclaim hours of battery life.
+- 📊 **Real-Time Telemetry Curve**: Live wattage trend, cumulative mWh drained, CPU thread workload, and percentage share of total drain.
 
 ---
 
@@ -97,6 +113,8 @@ Download the ready-to-run native installer directly:
 
 ## ✨ Features
 
+- **🧠 Automated Intelligent Recommendations**:
+  - Automatically identifies why background processes consume energy and provides specific, actionable battery-saving guidance for 30+ macOS daemons.
 - **🔋 Real-Time Smart Battery Telemetry**:
   - Live wattage (W), voltage (V), and amperage (A) monitoring.
   - Individual 3-cell voltage balance visualizer.
