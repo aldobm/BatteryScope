@@ -1,7 +1,7 @@
 # ⚡ Battery Scope — macOS Native Battery & Power Analyzer
 
 <p align="center">
-  <img src="AppIcon.icns" width="128" height="128" alt="Battery Scope Icon" />
+  <img src="docs/screenshots/app_icon.png" width="128" height="128" alt="Battery Scope Icon" />
 </p>
 
 <p align="center">
@@ -10,12 +10,54 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Platform-macOS%2013%2B-blue.svg" alt="Platform" />
-  <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-purple.svg" alt="Architecture" />
-  <img src="https://img.shields.io/badge/Swift-5.10%20%2F%206.0-orange.svg" alt="Swift" />
-  <img src="https://img.shields.io/badge/UI-SwiftUI%20Native-cyan.svg" alt="SwiftUI" />
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
+  <a href="https://github.com/aldobm/BatteryScope/releases/latest">
+    <img src="https://img.shields.io/github/v/release/aldobm/BatteryScope?style=for-the-badge&logo=apple&color=00D2FF&label=Release" alt="Latest Release" />
+  </a>
+  <img src="https://img.shields.io/badge/Platform-macOS%2013%2B-5856D6?style=for-the-badge&logo=apple" alt="Platform" />
+  <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-AF52DE?style=for-the-badge" alt="Architecture" />
+  <img src="https://img.shields.io/badge/Swift-5.10%20%2F%206.0-F05138?style=for-the-badge&logo=swift" alt="Swift" />
+  <img src="https://img.shields.io/badge/UI-SwiftUI%20Liquid-34C759?style=for-the-badge" alt="SwiftUI" />
+  <img src="https://img.shields.io/badge/License-MIT-FF9500?style=for-the-badge" alt="License" />
 </p>
+
+---
+
+## 📥 Download & Install (DMG)
+
+Download the ready-to-run native installer directly:
+
+<p align="center">
+  <a href="https://github.com/aldobm/BatteryScope/releases/download/v1.0.0/BatteryScope-v1.0.0.dmg">
+    <img src="https://img.shields.io/badge/⬇️%20Download-BatteryScope--v1.0.0.dmg-30D158?style=for-the-badge&labelColor=1c1c1e" height="42" alt="Download Battery Scope DMG" />
+  </a>
+</p>
+
+1. Download **[BatteryScope-v1.0.0.dmg](https://github.com/aldobm/BatteryScope/releases/download/v1.0.0/BatteryScope-v1.0.0.dmg)**.
+2. Double-click the DMG and drag **Battery Scope** into your **Applications** folder.
+3. Launch from Launchpad, Finder, or Spotlight.
+
+---
+
+## 📸 Interface & Feature Showcase
+
+### 🌟 Smart Analysis Dashboard
+<p align="center">
+  <img src="docs/screenshots/smart_analysis.png" alt="Smart Analysis Dashboard" width="95%" />
+</p>
+
+---
+
+### 🔍 Deep Dive Power Diagnostics
+
+| 🔥 Process Drain & Telemetry | 📈 Interval History & DarkWake |
+| :---: | :---: |
+| <img src="docs/screenshots/process_detail.jpg" alt="Process Drain" width="100%" /> | <img src="docs/screenshots/interval_history.png" alt="Interval History" width="100%" /> |
+| *Real-time mWh, wattage curves & explanations for system daemons* | *30-min block telemetry & background lid-closed power drains* |
+
+| 🖥️ Hardware Subsystems Breakdown | 🧭 Liquid Glass Overview |
+| :---: | :---: |
+| <img src="docs/screenshots/hardware_breakdown.jpg" alt="Hardware Breakdown" width="100%" /> | <img src="docs/screenshots/dashboard_overview.png" alt="Dashboard Overview" width="100%" /> |
+| *Power consumption per component: SoC, Retina Display, RAM, SSD* | *Clean dark liquid glass interface with live menu bar companion* |
 
 ---
 
@@ -48,24 +90,23 @@
   - 🇧🇷 Português
   - 🇮🇹 Italiano
   - 🇯🇵 日本語
-  - Seamless real-time switching without app restart via interactive language cards.
+  - Seamless real-time switching without app restart via interactive language cards in Settings.
 - **🧭 Liquid Glass Design**:
   - Modern, crystal dark mode interface with responsive animations and Menu Bar status item.
 
 ---
 
-## 🛠️ Requirements
+## 🛠️ System Requirements
 
 - **Mac hardware**: MacBook Air, MacBook Pro, Mac mini, Mac Studio, iMac, or Mac Pro.
 - **Chip**: Apple Silicon (M1, M2, M3, M4) or Intel Core (x86_64).
 - **Operating System**: macOS 13.0 (Ventura), macOS 14.0 (Sonoma), or macOS 15.0+ (Sequoia).
-- **Developer Tools**: Xcode Command Line Tools (`swiftc`).
 
 ---
 
-## 🚀 Quick Start & Build
+## 🚀 Build from Source
 
-Clone this repository and run the standalone build script:
+You can also build the application directly with Xcode Command Line Tools:
 
 ```bash
 git clone https://github.com/aldobm/BatteryScope.git
@@ -74,14 +115,9 @@ chmod +x build.sh
 ./build.sh
 ```
 
-The script compiles the native Swift application with the macOS SDK, signs it ad-hoc, and installs it to:
+The script compiles the native Swift application, signs it, and installs it to:
 ```
 ~/Applications/BatteryScope.app
-```
-
-You can then launch it from Spotlight, Finder, or Terminal:
-```bash
-open -a ~/Applications/BatteryScope.app
 ```
 
 ---
@@ -90,10 +126,14 @@ open -a ~/Applications/BatteryScope.app
 
 ```
 BatteryScope/
-├── AppIcon.icns                # App icon bundle
-├── build.sh                    # Build and packaging automation script
-├── .gitignore                  # Git exclusions
-├── README.md                   # Documentation
+├── AppIcon.icns                # Native macOS icon bundle
+├── AppIcon.png                 # App icon image
+├── build.sh                    # Build and compilation script
+├── create_dmg.sh               # DMG disk image packager
+├── publish_release.sh          # Automated GitHub Release publisher
+├── .github/workflows/          # GitHub Actions CI/CD workflows
+├── docs/screenshots/           # Screenshots and interface assets
+├── README.md                   # Project documentation
 └── src/
     ├── main.swift              # App entry point
     ├── AppDelegate.swift       # NSApplicationDelegate & MenuBar popover controller
