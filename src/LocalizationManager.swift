@@ -1,0 +1,1103 @@
+import SwiftUI
+import AppKit
+
+// MARK: - Supported App Languages
+
+public enum AppLanguage: String, CaseIterable, Identifiable {
+    case english = "en"       // Default
+    case spanish = "es"
+    case french = "fr"
+    case german = "de"
+    case portuguese = "pt"
+    case italian = "it"
+    case japanese = "ja"
+    
+    public var id: String { rawValue }
+    
+    public var flag: String {
+        switch self {
+        case .english: return "🇺🇸"
+        case .spanish: return "🇪🇸"
+        case .french: return "🇫🇷"
+        case .german: return "🇩🇪"
+        case .portuguese: return "🇧🇷"
+        case .italian: return "🇮🇹"
+        case .japanese: return "🇯🇵"
+        }
+    }
+    
+    public var displayName: String {
+        switch self {
+        case .english: return "English"
+        case .spanish: return "Español"
+        case .french: return "Français"
+        case .german: return "Deutsch"
+        case .portuguese: return "Português"
+        case .italian: return "Italiano"
+        case .japanese: return "日本語"
+        }
+    }
+    
+    public var flagWithLabel: String {
+        "\(flag) \(displayName)"
+    }
+}
+
+// MARK: - Localization Manager (Persistent & Reactive)
+
+public final class LocalizationManager: ObservableObject {
+    public static let shared = LocalizationManager()
+    
+    private let userDefaultsKey = "battery_pulse_language"
+    
+    @Published public var currentLanguage: AppLanguage {
+        didSet {
+            UserDefaults.standard.set(currentLanguage.rawValue, forKey: userDefaultsKey)
+        }
+    }
+    
+    private init() {
+        // Default on first launch: English
+        if let saved = UserDefaults.standard.string(forKey: userDefaultsKey),
+           let lang = AppLanguage(rawValue: saved) {
+            self.currentLanguage = lang
+        } else {
+            self.currentLanguage = .english
+        }
+    }
+    
+    public func setLanguage(_ lang: AppLanguage) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            self.currentLanguage = lang
+        }
+    }
+    
+    public func tr(_ key: String) -> String {
+        if let langDict = strings[currentLanguage], let val = langDict[key] {
+            return val
+        }
+        // Fallback to English
+        if let engDict = strings[.english], let val = engDict[key] {
+            return val
+        }
+        return key
+    }
+    
+    // MARK: - Comprehensive High-Quality Multilingual Dictionary
+    private let strings: [AppLanguage: [String: String]] = [
+        .english: [
+            // App & Titles
+            "app_name": "BatteryPulse",
+            "app_subtitle": "Mac Analyzer",
+            "refresh": "Refresh",
+            "updated_at": "Updated: %@",
+            "paused_analysis": "Live analysis paused",
+            "pause": "Pause",
+            "resume": "Resume",
+            "close": "Close",
+            "back": "Back",
+            "terminate_process": "Force Quit",
+            "pause_process": "Pause Process",
+            "paused_badge": "%d paused",
+            
+            // Categories
+            "cat_diagnostics": "DIAGNOSTICS",
+            "cat_consumption": "ENERGY CONSUMPTION",
+            "cat_hardware": "HARDWARE",
+            "cat_maintenance": "MAINTENANCE",
+            "cat_settings": "PREFERENCES",
+            
+            // Navigation
+            "nav_smart_analysis": "Smart Analysis",
+            "nav_energy_hogs": "Process Drain",
+            "nav_today_consumption": "Interval History",
+            "nav_timeline": "Timeline Charts",
+            "nav_health_cells": "Health & Cells",
+            "nav_charger": "USB-C Charger",
+            "nav_hardware_breakdown": "Hardware Breakdown",
+            "nav_startup_apps": "Startup Apps",
+            "nav_optimization": "Optimization",
+            "nav_settings": "Settings",
+            
+            // Battery Status & Hero
+            "charging": "Charging",
+            "on_battery": "On Battery",
+            "health": "Health",
+            "cycles": "cycles",
+            "condition": "Condition",
+            "normal": "Normal",
+            "current_flow": "Current flow",
+            "battery_level": "Battery Level",
+            "discharging": "Discharging",
+            "full_charge": "Full Charge",
+            "live_consumption": "Live Consumption",
+            "battery_health": "Battery Health",
+            "top_drain": "Highest Drain",
+            "low_consumption": "Low Consumption",
+            "no_hogs": "No heavy processes",
+            "voltage_and_current": "Voltage: %@ • Current: %@",
+            "cycles_and_condition": "%d cycles • Condition %@",
+            
+            // Modal Process Detail
+            "process_function": "Process Role in macOS:",
+            "why_active": "Why is it active?",
+            "what_to_do": "What should you do?",
+            "executable_process": "Executable: %@ • PID: %d",
+            "instant_power": "Instant Power",
+            "energy_consumed": "Energy Consumed",
+            "battery_share": "Battery Share",
+            "cpu_load": "CPU Load",
+            "live_mW": "%d mW live",
+            "total_drain": "of total drain",
+            "chip_threads": "chip threads",
+            "temporal_chart_title": "Temporal Consumption Chart (Watts)",
+            "unit_watts": "Unit: Watts (W) over time",
+            "accumulated": "Accumulated: %@",
+            
+            // Process Drain Screen
+            "app_energy_impact": "Application Energy Impact",
+            "app_energy_hint": "Click any application to inspect its temporal power chart and energy units",
+            "list_frozen": "List Frozen (Fixed)",
+            "list_live": "Live (Updating)",
+            "sort_by": "Sort by:",
+            "filter_placeholder": "Filter app...",
+            
+            // Timeline Screen
+            "hourly_breakdown": "Hourly Historical Breakdown",
+            
+            // Health & Cells Screen
+            "nominal_capacity": "Current Nominal Capacity",
+            "nominal_capacity_sub": "Current retained charge capacity",
+            "design_capacity": "Factory Design Capacity",
+            "design_capacity_sub": "Original factory spec capacity",
+            "hw_sensors": "Hardware Sensors",
+            "temperature": "Temperature",
+            "charge_cycles": "Charge Cycles",
+            "charge_cycles_format": "%d of 1000",
+            "health_status": "Health Condition",
+            
+            // Charger Screen
+            "adapter_manufacturer": "Manufacturer: %@",
+            "negotiated_power": "Negotiated power",
+            "adapter_voltage": "Adapter Voltage",
+            "adapter_current": "Adapter Current",
+            "cable_status": "Cable Condition",
+            "cable_status_optimal": "USB-C PD Optimal",
+            
+            // Optimization Screen
+            "opt_control_center": "Process Control & Pause Center",
+            "opt_control_desc": "Control high-drain background processes without quitting apps",
+            "paused_records_title": "Active Pause Registry",
+            "paused_none": "No processes paused currently",
+            
+            // Hardware Breakdown
+            "hw_breakdown_title": "Hardware Breakdown",
+            "hw_breakdown_subtitle": "Real-time energy monitoring of physical components: display, processor, memory, storage and peripherals.",
+            "total_hw_power": "Total Hardware Power",
+            "total_hw_subtitle": "Live total system draw",
+            "top_consumer": "Top Consumer",
+            "top_consumer_share": "Accounts for ~35% of total draw",
+            "architecture": "Architecture",
+            "soc_specs": "5nm SoC • LPDDR4X • NVMe",
+            "hw_chart_title": "Hardware Power Draw Over Time",
+            "hw_chart_subtitle_all": "Combined power distribution across Mac physical components in Watts",
+            "hw_chart_subtitle_single": "Power draw of %@ in Watts",
+            "all_components": "All components",
+            "hw_subsystems_title": "Physical Subsystems Breakdown",
+            "time_live": "Live",
+            "time_day": "Day History",
+            
+            // Components
+            "comp_display": "Retina Display",
+            "comp_cpu": "Apple M1 Processor",
+            "comp_ram": "Unified RAM Memory",
+            "comp_disk": "NVMe SSD Disk",
+            "comp_touchbar": "Touch Bar & Keyboard",
+            "comp_connectivity": "Wi-Fi & Bluetooth",
+            "comp_audio": "Audio System",
+            "comp_motherboard": "Logic Board & USB-C",
+            
+            // MenuBar Popover
+            "open_analyzer": "Open Analyzer",
+            "close_app": "Quit BatteryPulse",
+            "battery_devourers": "Top Energy Consumers",
+            "live_badge": "Live",
+            "inactive_badge": "Idle",
+            
+            // Language Picker & Settings
+            "language": "Language",
+            "select_language": "Select Language",
+            "settings_lang_section": "Application Languages",
+            "settings_lang_note": "Select the primary display language for BatteryPulse. All technical diagnostics, system explanations, process charts, and menus will update in real time.",
+            "settings_status_active": "Active",
+            "settings_status_select": "Select Language",
+            "settings_translation_coverage": "100% Translated",
+            "settings_general_section": "Monitoring Preferences",
+            "settings_refresh_rate": "Sampling Interval",
+            "settings_refresh_desc": "Live background refresh rate for power and process calculations",
+            "settings_autopause_title": "Smart Background Protection",
+            "settings_autopause_desc": "Advise pausing high-drain cloud sync daemons while on battery",
+            "settings_about_desc": "Open source native macOS power analyzer designed for Apple Silicon & Intel Macs.",
+            "settings_github_btn": "View on GitHub"
+        ],
+        
+        .spanish: [
+            // App & Titles
+            "app_name": "BatteryPulse",
+            "app_subtitle": "Analizador Mac",
+            "refresh": "Actualizar",
+            "updated_at": "Actualizado: %@",
+            "paused_analysis": "Análisis en pausa fija",
+            "pause": "Pausar",
+            "resume": "Reanudar",
+            "close": "Cerrar",
+            "back": "Regresar",
+            "terminate_process": "Finalizar Proceso",
+            "pause_process": "Pausar Proceso",
+            "paused_badge": "%d pausados",
+            
+            // Categories
+            "cat_diagnostics": "DIAGNÓSTICO",
+            "cat_consumption": "CONSUMO",
+            "cat_hardware": "HARDWARE",
+            "cat_maintenance": "MANTENIMIENTO",
+            "cat_settings": "PREFERENCIAS",
+            
+            // Navigation
+            "nav_smart_analysis": "Análisis inteligente",
+            "nav_energy_hogs": "Consumo por procesos",
+            "nav_today_consumption": "Consumo por intervalos",
+            "nav_timeline": "Gráficos de tiempo",
+            "nav_health_cells": "Salud y celdas",
+            "nav_charger": "Cargador USB-C",
+            "nav_hardware_breakdown": "Desglose de hardware",
+            "nav_startup_apps": "Apps de arranque",
+            "nav_optimization": "Optimización",
+            "nav_settings": "Opciones",
+            
+            // Battery Status & Hero
+            "charging": "Cargando",
+            "on_battery": "Con batería",
+            "health": "Salud",
+            "cycles": "ciclos",
+            "condition": "Condición",
+            "normal": "Normal",
+            "current_flow": "Flujo actual",
+            "battery_level": "Nivel de batería",
+            "discharging": "Descargando",
+            "full_charge": "Carga completa",
+            "live_consumption": "Consumo en Vivo",
+            "battery_health": "Salud de Batería",
+            "top_drain": "Mayor Drenaje",
+            "low_consumption": "Bajo Consumo",
+            "no_hogs": "Sin procesos voraces",
+            "voltage_and_current": "Voltaje: %@ • Corriente: %@",
+            "cycles_and_condition": "%d ciclos • Estado %@",
+            
+            // Modal Process Detail
+            "process_function": "Función del Proceso en macOS:",
+            "why_active": "¿Por qué está activo?",
+            "what_to_do": "¿Qué deberías hacer?",
+            "executable_process": "Proceso ejecutable: %@ • PID: %d",
+            "instant_power": "Potencia Instantánea",
+            "energy_consumed": "Energía Consumida",
+            "battery_share": "Cuota de Batería",
+            "cpu_load": "Carga de CPU",
+            "live_mW": "%d mW en vivo",
+            "total_drain": "del drenaje total",
+            "chip_threads": "hilos del chip",
+            "temporal_chart_title": "Gráfico de Consumo Temporal (Watts)",
+            "unit_watts": "Unidad: Watts (W) en el tiempo",
+            "accumulated": "Acumulado: %@",
+            
+            // Process Drain Screen
+            "app_energy_impact": "Impacto Energético de Aplicaciones",
+            "app_energy_hint": "Haz clic en cualquier aplicación para ver su gráfica de tiempo y unidades de energía",
+            "list_frozen": "Lista Congelada (Fija)",
+            "list_live": "En Vivo (Actualizando)",
+            "sort_by": "Ordenar:",
+            "filter_placeholder": "Filtrar app...",
+            
+            // Timeline Screen
+            "hourly_breakdown": "Desglose Histórico por Horas",
+            
+            // Health & Cells Screen
+            "nominal_capacity": "Capacidad Nominal Actual",
+            "nominal_capacity_sub": "Capacidad actual retenida",
+            "design_capacity": "Capacidad de Diseño de Fábrica",
+            "design_capacity_sub": "Capacidad original de fábrica",
+            "hw_sensors": "Sensores de Hardware",
+            "temperature": "Temperatura",
+            "charge_cycles": "Ciclos de Carga",
+            "charge_cycles_format": "%d de 1000",
+            "health_status": "Estado de Salud",
+            
+            // Charger Screen
+            "adapter_manufacturer": "Fabricante: %@",
+            "negotiated_power": "Potencia negociada",
+            "adapter_voltage": "Voltaje del Adaptador",
+            "adapter_current": "Corriente del Adaptador",
+            "cable_status": "Estado del Cable",
+            "cable_status_optimal": "USB-C PD Óptimo",
+            
+            // Optimization Screen
+            "opt_control_center": "Centro de Control y Pausa de Procesos",
+            "opt_control_desc": "Controla los procesos pesados en segundo plano sin cerrar aplicaciones",
+            "paused_records_title": "Registro de Procesos Pausados",
+            "paused_none": "No hay procesos pausados en este momento",
+            
+            // Hardware Breakdown
+            "hw_breakdown_title": "Desglose de Hardware",
+            "hw_breakdown_subtitle": "Monitoreo energético de los componentes físicos: pantalla, procesador, memoria, disco y periféricos.",
+            "total_hw_power": "Potencia Total Hardware",
+            "total_hw_subtitle": "Consumo total del equipo en vivo",
+            "top_consumer": "Mayor Consumidor",
+            "top_consumer_share": "Representa ~35% del consumo total",
+            "architecture": "Arquitectura",
+            "soc_specs": "SoC 5nm • LPDDR4X • NVMe",
+            "hw_chart_title": "Gráfico de Consumo por Hardware en el Tiempo",
+            "hw_chart_subtitle_all": "Distribución combinada de los componentes del Mac en Watts",
+            "hw_chart_subtitle_single": "Vatios de %@ en Watts",
+            "all_components": "Todos los componentes",
+            "hw_subsystems_title": "Desglose por Subsistemas Físicos",
+            "time_live": "En Vivo",
+            "time_day": "Historial del Día",
+            
+            // Components
+            "comp_display": "Pantalla Retina",
+            "comp_cpu": "Procesador Apple M1",
+            "comp_ram": "Memoria RAM Unificada",
+            "comp_disk": "Disco SSD NVMe",
+            "comp_touchbar": "Touch Bar y Teclado",
+            "comp_connectivity": "Wi-Fi y Bluetooth",
+            "comp_audio": "Sistema de Audio",
+            "comp_motherboard": "Placa Lógica y USB-C",
+            
+            // MenuBar Popover
+            "open_analyzer": "Abrir Analizador",
+            "close_app": "Cerrar BatteryPulse",
+            "battery_devourers": "Devoradores de Batería",
+            "live_badge": "En vivo",
+            "inactive_badge": "Inactivo",
+            
+            // Language Picker & Settings
+            "language": "Idioma",
+            "select_language": "Seleccionar Idioma",
+            "settings_lang_section": "Idiomas de la Aplicación",
+            "settings_lang_note": "Selecciona el idioma principal de BatteryPulse. Todos los diagnósticos técnicos, explicaciones del sistema, gráficos y menús se actualizarán en tiempo real.",
+            "settings_status_active": "Activo",
+            "settings_status_select": "Seleccionar Idioma",
+            "settings_translation_coverage": "Traducción Completa",
+            "settings_general_section": "Preferencias de Monitoreo",
+            "settings_refresh_rate": "Frecuencia de Escaneo",
+            "settings_refresh_desc": "Frecuencia de actualización en segundo plano de potencia y procesos",
+            "settings_autopause_title": "Protección Inteligente en Segundo Plano",
+            "settings_autopause_desc": "Sugerir pausar sincronizadores en la nube de alto drenaje con batería",
+            "settings_about_desc": "Analizador de energía nativo para macOS de código abierto diseñado para Apple Silicon e Intel.",
+            "settings_github_btn": "Ver en GitHub"
+        ],
+        
+        .french: [
+            "app_name": "BatteryPulse",
+            "app_subtitle": "Analyseur Mac",
+            "refresh": "Actualiser",
+            "updated_at": "Mis à jour: %@",
+            "paused_analysis": "Analyse en pause",
+            "pause": "Suspendre",
+            "resume": "Reprendre",
+            "close": "Fermer",
+            "back": "Retour",
+            "terminate_process": "Forcer à quitter",
+            "pause_process": "Mettre en pause",
+            "paused_badge": "%d en pause",
+            "cat_diagnostics": "DIAGNOSTIC",
+            "cat_consumption": "CONSOMMATION",
+            "cat_hardware": "MATÉRIEL",
+            "cat_maintenance": "MAINTENANCE",
+            "cat_settings": "PRÉFÉRENCES",
+            "nav_smart_analysis": "Analyse intelligente",
+            "nav_energy_hogs": "Gros consommateurs",
+            "nav_today_consumption": "Historique d'intervalles",
+            "nav_timeline": "Graphiques temporels",
+            "nav_health_cells": "Santé & Cellules",
+            "nav_charger": "Chargeur USB-C",
+            "nav_hardware_breakdown": "Analyse matérielle",
+            "nav_startup_apps": "Apps au démarrage",
+            "nav_optimization": "Optimisation",
+            "nav_settings": "Préférences",
+            "charging": "En charge",
+            "on_battery": "Sur batterie",
+            "health": "Santé",
+            "cycles": "cycles",
+            "condition": "État",
+            "normal": "Normal",
+            "current_flow": "Flux actuel",
+            "battery_level": "Niveau de batterie",
+            "discharging": "Décharge",
+            "full_charge": "Pleine charge",
+            "live_consumption": "Consommation en direct",
+            "battery_health": "Santé de la batterie",
+            "top_drain": "Plus gros drainage",
+            "low_consumption": "Faible consommation",
+            "no_hogs": "Aucun processus vorace",
+            "voltage_and_current": "Tension: %@ • Courant: %@",
+            "cycles_and_condition": "%d cycles • État %@",
+            "process_function": "Rôle du processus dans macOS:",
+            "why_active": "Pourquoi est-il actif ?",
+            "what_to_do": "Que devriez-vous faire ?",
+            "executable_process": "Exécutable: %@ • PID: %d",
+            "instant_power": "Puissance instantanée",
+            "energy_consumed": "Énergie consommée",
+            "battery_share": "Part de batterie",
+            "cpu_load": "Charge CPU",
+            "live_mW": "%d mW en direct",
+            "total_drain": "du drainage total",
+            "chip_threads": "threads de la puce",
+            "temporal_chart_title": "Graphique de consommation temporelle (Watts)",
+            "unit_watts": "Unité: Watts (W) dans le temps",
+            "accumulated": "Cumulé: %@",
+            "app_energy_impact": "Impact énergétique des applications",
+            "app_energy_hint": "Cliquez sur une application pour voir son graphique temporel",
+            "list_frozen": "Liste figée",
+            "list_live": "En direct (Mise à jour)",
+            "sort_by": "Trier par:",
+            "filter_placeholder": "Filtrer...",
+            "hourly_breakdown": "Historique horaire",
+            "nominal_capacity": "Capacité nominale actuelle",
+            "nominal_capacity_sub": "Capacité actuelle retenue",
+            "design_capacity": "Capacité d'origine",
+            "design_capacity_sub": "Capacité nominale d'usine",
+            "hw_sensors": "Capteurs matériels",
+            "temperature": "Température",
+            "charge_cycles": "Cycles de charge",
+            "charge_cycles_format": "%d sur 1000",
+            "health_status": "État de santé",
+            "adapter_manufacturer": "Fabricant: %@",
+            "negotiated_power": "Puissance négociée",
+            "adapter_voltage": "Tension de l'adaptateur",
+            "adapter_current": "Courant de l'adaptateur",
+            "cable_status": "État du câble",
+            "cable_status_optimal": "USB-C PD Optimal",
+            "opt_control_center": "Centre de contrôle et pause des processus",
+            "opt_control_desc": "Gérez les processus lourds sans fermer vos applications",
+            "paused_records_title": "Registre des processus en pause",
+            "paused_none": "Aucun processus suspendu actuellement",
+            "hw_breakdown_title": "Analyse Matérielle",
+            "hw_breakdown_subtitle": "Surveillance énergétique en direct des composants physiques : écran, processeur, mémoire, disque et périphériques.",
+            "total_hw_power": "Puissance Totale Matériel",
+            "total_hw_subtitle": "Consommation globale en direct",
+            "top_consumer": "Plus gros consommateur",
+            "top_consumer_share": "Représente ~35% de la puissance totale",
+            "architecture": "Architecture",
+            "soc_specs": "SoC 5nm • LPDDR4X • NVMe",
+            "hw_chart_title": "Consommation matérielle au fil du temps",
+            "hw_chart_subtitle_all": "Distribution combinée des composants Mac en Watts",
+            "hw_chart_subtitle_single": "Puissance de %@ en Watts",
+            "all_components": "Tous les composants",
+            "hw_subsystems_title": "Sous-systèmes Physiques",
+            "time_live": "En direct",
+            "time_day": "Historique du jour",
+            "comp_display": "Écran Retina",
+            "comp_cpu": "Processeur Apple M1",
+            "comp_ram": "Mémoire RAM unifiée",
+            "comp_disk": "Disque SSD NVMe",
+            "comp_touchbar": "Touch Bar & Clavier",
+            "comp_connectivity": "Wi-Fi & Bluetooth",
+            "comp_audio": "Système audio",
+            "comp_motherboard": "Carte logique & USB-C",
+            "open_analyzer": "Ouvrir l'analyseur",
+            "close_app": "Quitter BatteryPulse",
+            "battery_devourers": "Consommateurs d'énergie",
+            "live_badge": "En direct",
+            "inactive_badge": "Inactif",
+            "language": "Langue",
+            "select_language": "Sélectionner la langue",
+            "settings_lang_section": "Langues de l'application",
+            "settings_lang_note": "Sélectionnez la langue principale de BatteryPulse. Tous les diagnostics techniques, explications et menus se mettront à jour en temps réel.",
+            "settings_status_active": "Actif",
+            "settings_status_select": "Sélectionner la langue",
+            "settings_translation_coverage": "Traduction Complète",
+            "settings_general_section": "Préférences de surveillance",
+            "settings_refresh_rate": "Intervalle d'échantillonnage",
+            "settings_refresh_desc": "Fréquence de rafraîchissement des mesures de puissance",
+            "settings_autopause_title": "Protection en arrière-plan",
+            "settings_autopause_desc": "Conseiller la mise en pause des synchroniseurs cloud sur batterie",
+            "settings_about_desc": "Analyseur d'énergie natif macOS conçu pour Apple Silicon et Intel.",
+            "settings_github_btn": "Voir sur GitHub"
+        ],
+        
+        .german: [
+            "app_name": "BatteryPulse",
+            "app_subtitle": "Mac-Analyse",
+            "refresh": "Aktualisieren",
+            "updated_at": "Aktualisiert: %@",
+            "paused_analysis": "Analyse pausiert",
+            "pause": "Pausieren",
+            "resume": "Fortsetzen",
+            "close": "Schließen",
+            "back": "Zurück",
+            "terminate_process": "Sofort beenden",
+            "pause_process": "Prozess anhalten",
+            "paused_badge": "%d pausiert",
+            "cat_diagnostics": "DIAGNOSE",
+            "cat_consumption": "VERBRAUCH",
+            "cat_hardware": "HARDWARE",
+            "cat_maintenance": "WARTUNG",
+            "cat_settings": "EINSTELLUNGEN",
+            "nav_smart_analysis": "Intelligente Analyse",
+            "nav_energy_hogs": "Energiefresser",
+            "nav_today_consumption": "Intervall-Verlauf",
+            "nav_timeline": "Zeitverlauf-Diagramme",
+            "nav_health_cells": "Zustand & Zellen",
+            "nav_charger": "USB-C Ladegerät",
+            "nav_hardware_breakdown": "Hardware-Aufschlüsselung",
+            "nav_startup_apps": "Autostart-Apps",
+            "nav_optimization": "Optimierung",
+            "nav_settings": "Einstellungen",
+            "charging": "Wird geladen",
+            "on_battery": "Batteriebetrieb",
+            "health": "Zustand",
+            "cycles": "Zyklen",
+            "condition": "Status",
+            "normal": "Normal",
+            "current_flow": "Aktueller Fluss",
+            "battery_level": "Batteriestand",
+            "discharging": "Entladen",
+            "full_charge": "Vollständig geladen",
+            "live_consumption": "Echtzeit-Verbrauch",
+            "battery_health": "Batteriezustand",
+            "top_drain": "Größter Verbrauch",
+            "low_consumption": "Niedriger Verbrauch",
+            "no_hogs": "Keine energiehungrigen Prozesse",
+            "voltage_and_current": "Spannung: %@ • Stromstärke: %@",
+            "cycles_and_condition": "%d Zyklen • Zustand %@",
+            "process_function": "Prozessaufgabe in macOS:",
+            "why_active": "Warum ist er aktiv?",
+            "what_to_do": "Was sollten Sie tun?",
+            "executable_process": "Ausführbare Datei: %@ • PID: %d",
+            "instant_power": "Momentanleistung",
+            "energy_consumed": "Verbrauchte Energie",
+            "battery_share": "Batterieanteil",
+            "cpu_load": "CPU-Last",
+            "live_mW": "%d mW live",
+            "total_drain": "des Gesamtverbrauchs",
+            "chip_threads": "Chip-Threads",
+            "temporal_chart_title": "Verbrauchsdiagramm über Zeit (Watts)",
+            "unit_watts": "Einheit: Watt (W) im Zeitverlauf",
+            "accumulated": "Gesamt: %@",
+            "app_energy_impact": "Energieauswirkung von Apps",
+            "app_energy_hint": "Klicken Sie auf eine App, um das Zeitdiagramm zu sehen",
+            "list_frozen": "Liste fixiert",
+            "list_live": "Live (Wird aktualisiert)",
+            "sort_by": "Sortieren nach:",
+            "filter_placeholder": "App filtern...",
+            "hourly_breakdown": "Stündliche Aufschlüsselung",
+            "nominal_capacity": "Aktuelle Nennkapazität",
+            "nominal_capacity_sub": "Tatsächlich gespeicherte Kapazität",
+            "design_capacity": "Ursprüngliche Nennkapazität",
+            "design_capacity_sub": "Originale Werksspezifikation",
+            "hw_sensors": "Hardwaresensoren",
+            "temperature": "Temperatur",
+            "charge_cycles": "Ladezyklen",
+            "charge_cycles_format": "%d von 1000",
+            "health_status": "Gesundheitszustand",
+            "adapter_manufacturer": "Hersteller: %@",
+            "negotiated_power": "Ausgehandelte Leistung",
+            "adapter_voltage": "Netzteilspannung",
+            "adapter_current": "Netzteilstrom",
+            "cable_status": "Kabelzustand",
+            "cable_status_optimal": "USB-C PD Optimal",
+            "opt_control_center": "Prozesskontroll- und Pausenzentrum",
+            "opt_control_desc": "Hintergrundprozesse anhalten ohne Programme zu beenden",
+            "paused_records_title": "Pausierte Prozesse",
+            "paused_none": "Derzeit sind keine Prozesse angehalten",
+            "hw_breakdown_title": "Hardware-Aufschlüsselung",
+            "hw_breakdown_subtitle": "Echtzeit-Energieüberwachung der physischen Komponenten: Display, Prozessor, Speicher, SSD und Peripherie.",
+            "total_hw_power": "Gesamte Hardware-Leistung",
+            "total_hw_subtitle": "Gesamter Systemverbrauch live",
+            "top_consumer": "Größter Verbraucher",
+            "top_consumer_share": "Verursacht ~35% des Gesamtverbrauchs",
+            "architecture": "Architektur",
+            "soc_specs": "5nm SoC • LPDDR4X • NVMe",
+            "hw_chart_title": "Hardware-Leistungsverlauf über Zeit",
+            "hw_chart_subtitle_all": "Kombinierte Leistungsverteilung der Mac-Komponenten in Watt",
+            "hw_chart_subtitle_single": "Leistung von %@ in Watt",
+            "all_components": "Alle Komponenten",
+            "hw_subsystems_title": "Physische Subsysteme",
+            "time_live": "Echtzeit",
+            "time_day": "Tagesverlauf",
+            "comp_display": "Retina-Display",
+            "comp_cpu": "Apple M1 Prozessor",
+            "comp_ram": "Gemeinsamer Arbeitsspeicher (RAM)",
+            "comp_disk": "NVMe SSD Festplatte",
+            "comp_touchbar": "Touch Bar & Tastatur",
+            "comp_connectivity": "WLAN & Bluetooth",
+            "comp_audio": "Audiosystem",
+            "comp_motherboard": "Hauptplatine & USB-C",
+            "open_analyzer": "Analyzer öffnen",
+            "close_app": "BatteryPulse beenden",
+            "battery_devourers": "Top-Energiefresser",
+            "live_badge": "Live",
+            "inactive_badge": "Inaktiv",
+            "language": "Sprache",
+            "select_language": "Sprache auswählen",
+            "settings_lang_section": "App-Sprachen",
+            "settings_lang_note": "Wählen Sie die Hauptsprache für BatteryPulse. Alle technischen Diagnosen und Systemerklärungen werden in Echtzeit aktualisiert.",
+            "settings_status_active": "Aktiv",
+            "settings_status_select": "Sprache auswählen",
+            "settings_translation_coverage": "Vollständig übersetzt",
+            "settings_general_section": "Überwachungseinstellungen",
+            "settings_refresh_rate": "Abtastintervall",
+            "settings_refresh_desc": "Hintergrundaktualisierungsrate für Leistung und Prozesse",
+            "settings_autopause_title": "Intelligenter Hintergrundschutz",
+            "settings_autopause_desc": "Synchronisierungsdienste bei Akkubetrieb automatisch pausieren",
+            "settings_about_desc": "Open-Source macOS-Energieanalyse für Apple Silicon und Intel.",
+            "settings_github_btn": "Auf GitHub ansehen"
+        ],
+        
+        .portuguese: [
+            "app_name": "BatteryPulse",
+            "app_subtitle": "Analisador Mac",
+            "refresh": "Atualizar",
+            "updated_at": "Atualizado: %@",
+            "paused_analysis": "Análise pausada",
+            "pause": "Pausar",
+            "resume": "Retomar",
+            "close": "Fechar",
+            "back": "Voltar",
+            "terminate_process": "Forçar Encerramento",
+            "pause_process": "Pausar Processo",
+            "paused_badge": "%d pausados",
+            "cat_diagnostics": "DIAGNÓSTICO",
+            "cat_consumption": "CONSUMO",
+            "cat_hardware": "HARDWARE",
+            "cat_maintenance": "MANUTENÇÃO",
+            "cat_settings": "PREFERÊNCIAS",
+            "nav_smart_analysis": "Análise Inteligente",
+            "nav_energy_hogs": "Consumo por Processos",
+            "nav_today_consumption": "Histórico de Intervalos",
+            "nav_timeline": "Gráficos Temporais",
+            "nav_health_cells": "Saúde & Células",
+            "nav_charger": "Carregador USB-C",
+            "nav_hardware_breakdown": "Detalhamento de Hardware",
+            "nav_startup_apps": "Apps de Inicialização",
+            "nav_optimization": "Otimização",
+            "nav_settings": "Opções",
+            "charging": "Carregando",
+            "on_battery": "Na bateria",
+            "health": "Saúde",
+            "cycles": "ciclos",
+            "condition": "Condição",
+            "normal": "Normal",
+            "current_flow": "Fluxo atual",
+            "battery_level": "Nível da bateria",
+            "discharging": "Descarregando",
+            "full_charge": "Carga completa",
+            "live_consumption": "Consumo em Tempo Real",
+            "battery_health": "Saúde da Bateria",
+            "top_drain": "Maior Drenagem",
+            "low_consumption": "Baixo Consumo",
+            "no_hogs": "Sem processos pesados",
+            "voltage_and_current": "Tensão: %@ • Corrente: %@",
+            "cycles_and_condition": "%d ciclos • Estado %@",
+            "process_function": "Função do processo no macOS:",
+            "why_active": "Por que está ativo?",
+            "what_to_do": "O que você deve fazer?",
+            "executable_process": "Executável: %@ • PID: %d",
+            "instant_power": "Potência Instantânea",
+            "energy_consumed": "Energía Consumida",
+            "battery_share": "Cota da Bateria",
+            "cpu_load": "Carga de CPU",
+            "live_mW": "%d mW em tempo real",
+            "total_drain": "do consumo total",
+            "chip_threads": "threads do chip",
+            "temporal_chart_title": "Gráfico de Consumo Temporal (Watts)",
+            "unit_watts": "Unidade: Watts (W) no tempo",
+            "accumulated": "Acumulado: %@",
+            "app_energy_impact": "Impacto Energético de Aplicativos",
+            "app_energy_hint": "Clique em qualquer aplicativo para ver o gráfico temporal",
+            "list_frozen": "Lista Congelada",
+            "list_live": "Ao Vivo (Atualizando)",
+            "sort_by": "Ordenar por:",
+            "filter_placeholder": "Filtrar...",
+            "hourly_breakdown": "Histórico por Hora",
+            "nominal_capacity": "Capacidade Nominal Atual",
+            "nominal_capacity_sub": "Capacidade atual retida",
+            "design_capacity": "Capacidade Original de Fábrica",
+            "design_capacity_sub": "Especificação original de fábrica",
+            "hw_sensors": "Sensores de Hardware",
+            "temperature": "Temperatura",
+            "charge_cycles": "Ciclos de Carga",
+            "charge_cycles_format": "%d de 1000",
+            "health_status": "Estado de Saúde",
+            "adapter_manufacturer": "Fabricante: %@",
+            "negotiated_power": "Potência negociada",
+            "adapter_voltage": "Tensão do Adaptador",
+            "adapter_current": "Corrente do Adaptador",
+            "cable_status": "Status do Cabo",
+            "cable_status_optimal": "USB-C PD Ideal",
+            "opt_control_center": "Centro de Controle e Pausa de Processos",
+            "opt_control_desc": "Controle processos pesados sem encerrar aplicativos",
+            "paused_records_title": "Registro de Processos Pausados",
+            "paused_none": "Nenhum processo pausado no momento",
+            "hw_breakdown_title": "Detalhamento de Hardware",
+            "hw_breakdown_subtitle": "Monitoramento em tempo real dos componentes físicos: tela, processador, memória, disco e periféricos.",
+            "total_hw_power": "Potência Total do Hardware",
+            "total_hw_subtitle": "Consumo total do Mac em tempo real",
+            "top_consumer": "Maior Consumidor",
+            "top_consumer_share": "Representa ~35% do consumo total",
+            "architecture": "Arquitetura",
+            "soc_specs": "SoC 5nm • LPDDR4X • NVMe",
+            "hw_chart_title": "Consumo de Hardware ao Longo do Tempo",
+            "hw_chart_subtitle_all": "Distribuição combinada dos componentes do Mac em Watts",
+            "hw_chart_subtitle_single": "Potência de %@ em Watts",
+            "all_components": "Todos os componentes",
+            "hw_subsystems_title": "Subsistemas Físicos",
+            "time_live": "Ao Vivo",
+            "time_day": "Histórico do Dia",
+            "comp_display": "Tela Retina",
+            "comp_cpu": "Processador Apple M1",
+            "comp_ram": "Memória RAM Unificada",
+            "comp_disk": "Disco SSD NVMe",
+            "comp_touchbar": "Touch Bar & Teclado",
+            "comp_connectivity": "Wi-Fi & Bluetooth",
+            "comp_audio": "Sistema de Áudio",
+            "comp_motherboard": "Placa Lógica & USB-C",
+            "open_analyzer": "Abrir Analisador",
+            "close_app": "Encerrar BatteryPulse",
+            "battery_devourers": "Maiores Consumidores",
+            "live_badge": "Ao vivo",
+            "inactive_badge": "Inativo",
+            "language": "Idioma",
+            "select_language": "Selecionar Idioma",
+            "settings_lang_section": "Idiomas do Aplicativo",
+            "settings_lang_note": "Selecione o idioma principal do BatteryPulse. Todos os diagnósticos técnicos e menus serão atualizados em tempo real.",
+            "settings_status_active": "Ativo",
+            "settings_status_select": "Selecionar Idioma",
+            "settings_translation_coverage": "Tradução Completa",
+            "settings_general_section": "Preferências de Monitoramento",
+            "settings_refresh_rate": "Intervalo de Amostragem",
+            "settings_refresh_desc": "Frequência de atualização em segundo plano para cálculos de energia",
+            "settings_autopause_title": "Proteção Inteligente em Segundo Plano",
+            "settings_autopause_desc": "Recomendar pausar sincronizadores de nuvem de alto consumo na bateria",
+            "settings_about_desc": "Analisador de energia nativo do macOS de código aberto para Apple Silicon e Intel.",
+            "settings_github_btn": "Ver no GitHub"
+        ],
+        
+        .italian: [
+            "app_name": "BatteryPulse",
+            "app_subtitle": "Analizzatore Mac",
+            "refresh": "Aggiorna",
+            "updated_at": "Aggiornato: %@",
+            "paused_analysis": "Analisi in pausa",
+            "pause": "Pausa",
+            "resume": "Riprendi",
+            "close": "Chiudi",
+            "back": "Indietro",
+            "terminate_process": "Uscita Forzata",
+            "pause_process": "Sospendi Processo",
+            "paused_badge": "%d sospesi",
+            "cat_diagnostics": "DIAGNOSTICA",
+            "cat_consumption": "CONSUMO",
+            "cat_hardware": "HARDWARE",
+            "cat_maintenance": "MANUTENZIONE",
+            "cat_settings": "PREFERENZE",
+            "nav_smart_analysis": "Analisi Intelligente",
+            "nav_energy_hogs": "Consumo Processi",
+            "nav_today_consumption": "Cronologia Intervalli",
+            "nav_timeline": "Grafici Temporali",
+            "nav_health_cells": "Salute & Celle",
+            "nav_charger": "Caricabatterie USB-C",
+            "nav_hardware_breakdown": "Dettaglio Hardware",
+            "nav_startup_apps": "App di Avvio",
+            "nav_optimization": "Ottimizzazione",
+            "nav_settings": "Opzioni",
+            "charging": "In carica",
+            "on_battery": "A batteria",
+            "health": "Salute",
+            "cycles": "cicli",
+            "condition": "Condizione",
+            "normal": "Normale",
+            "current_flow": "Flusso attuale",
+            "battery_level": "Livello batteria",
+            "discharging": "In scarica",
+            "full_charge": "Carica completa",
+            "live_consumption": "Consumo in Diretta",
+            "battery_health": "Salute Batteria",
+            "top_drain": "Maggior Drenaggio",
+            "low_consumption": "Basso Consumo",
+            "no_hogs": "Nessun processo pesante",
+            "voltage_and_current": "Voltaggio: %@ • Corrente: %@",
+            "cycles_and_condition": "%d cicli • Condizione %@",
+            "process_function": "Ruolo del processo in macOS:",
+            "why_active": "Perché è attivo?",
+            "what_to_do": "Cosa dovresti fare?",
+            "executable_process": "Eseguibile: %@ • PID: %d",
+            "instant_power": "Potenza Istantanea",
+            "energy_consumed": "Energia Consumata",
+            "battery_share": "Quota Batteria",
+            "cpu_load": "Carico CPU",
+            "live_mW": "%d mW in tempo reale",
+            "total_drain": "del drenaggio totale",
+            "chip_threads": "thread del chip",
+            "temporal_chart_title": "Grafico di Consumo Temporale (Watts)",
+            "unit_watts": "Unità: Watts (W) nel tempo",
+            "accumulated": "Accumulato: %@",
+            "app_energy_impact": "Impatto Energetico delle Applicazioni",
+            "app_energy_hint": "Fai clic su qualsiasi applicazione per visualizzare il grafico temporale",
+            "list_frozen": "Elenco Bloccato",
+            "list_live": "In Diretta (Aggiornamento)",
+            "sort_by": "Ordina per:",
+            "filter_placeholder": "Filtra app...",
+            "hourly_breakdown": "Ripartizione Oraria",
+            "nominal_capacity": "Capacità Nominale Attuale",
+            "nominal_capacity_sub": "Capacità attualmente conservata",
+            "design_capacity": "Capacità di Fabbrica",
+            "design_capacity_sub": "Specifica originale di fabbrica",
+            "hw_sensors": "Sensori Hardware",
+            "temperature": "Temperatura",
+            "charge_cycles": "Cicli di Carica",
+            "charge_cycles_format": "%d su 1000",
+            "health_status": "Stato di Salute",
+            "adapter_manufacturer": "Produttore: %@",
+            "negotiated_power": "Potenza negoziata",
+            "adapter_voltage": "Tensione dell'alimentatore",
+            "adapter_current": "Corrente dell'alimentatore",
+            "cable_status": "Stato del Cavo",
+            "cable_status_optimal": "USB-C PD Ottimale",
+            "opt_control_center": "Centro di Controllo e Sospensione Processi",
+            "opt_control_desc": "Gestisci i processi pesanti in background senza chiudere le app",
+            "paused_records_title": "Registro Processi Sospesi",
+            "paused_none": "Nessun processo sospeso attualmente",
+            "hw_breakdown_title": "Dettaglio Hardware",
+            "hw_breakdown_subtitle": "Monitoraggio energetico in tempo reale dei componenti fisici: display, processore, memoria, disco e periferiche.",
+            "total_hw_power": "Potenza Totale Hardware",
+            "total_hw_subtitle": "Consumo totale del Mac in tempo reale",
+            "top_consumer": "Consumatore Principale",
+            "top_consumer_share": "Rappresenta ~35% del consumo totale",
+            "architecture": "Architettura",
+            "soc_specs": "SoC 5nm • LPDDR4X • NVMe",
+            "hw_chart_title": "Consumo Hardware nel Tempo",
+            "hw_chart_subtitle_all": "Distribuzione combinata dei componenti del Mac in Watt",
+            "hw_chart_subtitle_single": "Potenza di %@ in Watt",
+            "all_components": "Tutti i componenti",
+            "hw_subsystems_title": "Sottosistemi Fisici",
+            "time_live": "In Diretta",
+            "time_day": "Cronologia Odierna",
+            "comp_display": "Schermo Retina",
+            "comp_cpu": "Processore Apple M1",
+            "comp_ram": "Memoria RAM Unificata",
+            "comp_disk": "Disco SSD NVMe",
+            "comp_touchbar": "Touch Bar & Tastiera",
+            "comp_connectivity": "Wi-Fi & Bluetooth",
+            "comp_audio": "Sistema Audio",
+            "comp_motherboard": "Scheda Logica & USB-C",
+            "open_analyzer": "Apri Analizzatore",
+            "close_app": "Chiudi BatteryPulse",
+            "battery_devourers": "Maggiori Consumatori",
+            "live_badge": "In diretta",
+            "inactive_badge": "Inattivo",
+            "language": "Lingua",
+            "select_language": "Seleziona Lingua",
+            "settings_lang_section": "Lingue dell'applicazione",
+            "settings_lang_note": "Seleziona la lingua principale di BatteryPulse. Tutte le diagnosi tecniche e i menu si aggiorneranno in tempo reale.",
+            "settings_status_active": "Attivo",
+            "settings_status_select": "Seleziona Lingua",
+            "settings_translation_coverage": "Traduzione Completa",
+            "settings_general_section": "Preferenze di Monitoraggio",
+            "settings_refresh_rate": "Intervallo di Campionamento",
+            "settings_refresh_desc": "Frequenza di aggiornamento in background per i calcoli di alimentazione",
+            "settings_autopause_title": "Protezione Intelligente in Background",
+            "settings_autopause_desc": "Consiglia di sospendere i sincronizzatori cloud ad alto consumo a batteria",
+            "settings_about_desc": "Analizzatore di alimentazione nativo macOS open source per Apple Silicon e Intel.",
+            "settings_github_btn": "Vedi su GitHub"
+        ],
+        
+        .japanese: [
+            "app_name": "BatteryPulse",
+            "app_subtitle": "Mac アナライザー",
+            "refresh": "更新",
+            "updated_at": "更新日時: %@",
+            "paused_analysis": "リアルタイム分析一時停止中",
+            "pause": "一時停止",
+            "resume": "再開",
+            "close": "閉じる",
+            "back": "戻る",
+            "terminate_process": "強制終了",
+            "pause_process": "プロセス一時停止",
+            "paused_badge": "%d件一時停止",
+            "cat_diagnostics": "診断",
+            "cat_consumption": "エネルギー消費",
+            "cat_hardware": "ハードウェア",
+            "cat_maintenance": "メンテナンス",
+            "cat_settings": "環境設定",
+            "nav_smart_analysis": "スマート分析",
+            "nav_energy_hogs": "高消費プロセス",
+            "nav_today_consumption": "区間別履歴",
+            "nav_timeline": "時系列グラフ",
+            "nav_health_cells": "健康度とセル",
+            "nav_charger": "USB-C 充電器",
+            "nav_hardware_breakdown": "ハードウェア消費内訳",
+            "nav_startup_apps": "スタートアップ項目",
+            "nav_optimization": "最適化",
+            "nav_settings": "設定",
+            "charging": "充電中",
+            "on_battery": "バッテリー駆動",
+            "health": "最大容量",
+            "cycles": "サイクル",
+            "condition": "状態",
+            "normal": "正常",
+            "current_flow": "現在の消費電力",
+            "battery_level": "バッテリー残量",
+            "discharging": "放電中",
+            "full_charge": "フル充電",
+            "live_consumption": "リアルタイム消費",
+            "battery_health": "バッテリー最大容量",
+            "top_drain": "最大消費プロセス",
+            "low_consumption": "低消費電力",
+            "no_hogs": "過剰消費プロセスなし",
+            "voltage_and_current": "電圧: %@ • 電流: %@",
+            "cycles_and_condition": "%d サイクル • 状態 %@",
+            "process_function": "macOSにおけるプロセスの役割:",
+            "why_active": "動作している理由",
+            "what_to_do": "推奨される対処法",
+            "executable_process": "実行ファイル: %@ • PID: %d",
+            "instant_power": "瞬間消費電力",
+            "energy_consumed": "総消費電力量",
+            "battery_share": "バッテリー消費比率",
+            "cpu_load": "CPU 負荷",
+            "live_mW": "%d mW リアルタイム",
+            "total_drain": "総消費電力に占める割合",
+            "chip_threads": "チップスレッド",
+            "temporal_chart_title": "時間別消費電力グラフ (W)",
+            "unit_watts": "単位: ワット (W)",
+            "accumulated": "累計: %@",
+            "app_energy_impact": "アプリケーションのエネルギー影響",
+            "app_energy_hint": "アプリをクリックして時系列グラフと詳細を表示",
+            "list_frozen": "リスト固定中",
+            "list_live": "リアルタイム更新中",
+            "sort_by": "並べ替え:",
+            "filter_placeholder": "アプリを絞り込み...",
+            "hourly_breakdown": "時間別履歴",
+            "nominal_capacity": "現在の公称容量",
+            "nominal_capacity_sub": "現在保持されている充電容量",
+            "design_capacity": "設計容量",
+            "design_capacity_sub": "工場出荷時の基準容量",
+            "hw_sensors": "ハードウェアセンサー",
+            "temperature": "温度",
+            "charge_cycles": "充電サイクル",
+            "charge_cycles_format": "%d / 1000",
+            "health_status": "健康状態",
+            "adapter_manufacturer": "製造元: %@",
+            "negotiated_power": "ネゴシエート電力",
+            "adapter_voltage": "アダプタ電圧",
+            "adapter_current": "アダプタ電流",
+            "cable_status": "ケーブル状態",
+            "cable_status_optimal": "USB-C PD 最適",
+            "opt_control_center": "プロセスコントロールセンター",
+            "opt_control_desc": "アプリを終了せずにバックグラウンド負荷を一時停止",
+            "paused_records_title": "一時停止中のプロセス一覧",
+            "paused_none": "現在一時停止中のプロセスはありません",
+            "hw_breakdown_title": "ハードウェア消費電力の内訳",
+            "hw_breakdown_subtitle": "ディスプレイ、CPU/GPU、RAM、SSD、周辺機器などの物理コンポーネントをリアルタイム監視",
+            "total_hw_power": "ハードウェア総消費電力",
+            "total_hw_subtitle": "システム全体のリアルタイム消費",
+            "top_consumer": "最大消費コンポーネント",
+            "top_consumer_share": "総電力の約35%を消費",
+            "architecture": "アーキテクチャ",
+            "soc_specs": "5nm SoC • LPDDR4X • NVMe",
+            "hw_chart_title": "ハードウェア消費電力の時系列推移",
+            "hw_chart_subtitle_all": "Mac各物理コンポーネントの消費電力分布 (W)",
+            "hw_chart_subtitle_single": "%@ の消費電力 (W)",
+            "all_components": "すべてのコンポーネント",
+            "hw_subsystems_title": "物理サブシステム別の詳細",
+            "time_live": "リアルタイム",
+            "time_day": "本日の履歴",
+            "comp_display": "Retina ディスプレイ",
+            "comp_cpu": "Apple M1 プロセッサ",
+            "comp_ram": "ユニファイドメモリ (RAM)",
+            "comp_disk": "NVMe SSD ストレージ",
+            "comp_touchbar": "Touch Bar & キーボード",
+            "comp_connectivity": "Wi-Fi & Bluetooth",
+            "comp_audio": "オーディオシステム",
+            "comp_motherboard": "ロジックボード & USB-C",
+            "open_analyzer": "アナライザーを開く",
+            "close_app": "BatteryPulse を終了",
+            "battery_devourers": "高エネルギー消費プロセス",
+            "live_badge": "ライブ",
+            "inactive_badge": "待機中",
+            "language": "言語",
+            "select_language": "言語を選択",
+            "settings_lang_section": "アプリケーションの言語",
+            "settings_lang_note": "BatteryPulseの表示言語を選択してください。すべての技術診断、システム説明、グラフ、メニューがリアルタイムで更新されます。",
+            "settings_status_active": "適用中",
+            "settings_status_select": "言語を選択",
+            "settings_translation_coverage": "完全ネイティブ対応",
+            "settings_general_section": "モニタリング設定",
+            "settings_refresh_rate": "サンプリング間隔",
+            "settings_refresh_desc": "バックグラウンドでの電力およびプロセスメトリクス更新頻度",
+            "settings_autopause_title": "スマートバックグラウンド保護",
+            "settings_autopause_desc": "バッテリー駆動時に高消費クラウド同期デーモンの停止を提案",
+            "settings_about_desc": "Apple Silicon & Intel Mac向けオープンソースネイティブmacOS電源アナライザー。",
+            "settings_github_btn": "GitHub で見る"
+        ]
+    ]
+}
+
+// MARK: - Global Translation Shortcut
+
+public func loc(_ key: String) -> String {
+    LocalizationManager.shared.tr(key)
+}
+
+public func locFormat(_ key: String, _ args: CVarArg...) -> String {
+    let format = LocalizationManager.shared.tr(key)
+    return String(format: format, arguments: args)
+}
+
+// MARK: - Flag Language Picker View Component (Compact Capsule)
+
+public struct LanguageFlagPickerMenu: View {
+    @ObservedObject var locMgr = LocalizationManager.shared
+    
+    public init() {}
+    
+    public var body: some View {
+        Menu {
+            ForEach(AppLanguage.allCases) { lang in
+                Button(action: {
+                    locMgr.setLanguage(lang)
+                }) {
+                    HStack {
+                        Text(lang.flag)
+                        Text(lang.displayName)
+                        if locMgr.currentLanguage == lang {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(locMgr.currentLanguage.flag)
+                    .font(.system(size: 14))
+                Text(locMgr.currentLanguage.displayName)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(Color.textMuted)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.white.opacity(0.08))
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+}

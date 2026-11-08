@@ -1,0 +1,19 @@
+# Build artifacts
+build/
+*.app/
+*.dSYM/
+*.o
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor & temporary files
+*.swp
+*~
+.idea/
+.vscode/
