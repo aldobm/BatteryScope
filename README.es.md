@@ -51,7 +51,7 @@ Descarga directamente el instalador oficial listo para usar:
 
 ### 🌟 Panel de Análisis Inteligente
 <p align="center">
-  <img src="docs/screenshots/smart_analysis.png" alt="Panel de Análisis Inteligente" width="95%" />
+  <img src="docs/screenshots/01_smart_analysis.jpg" alt="Panel de Análisis Inteligente Battery Scope" width="95%" />
 </p>
 
 ---
@@ -60,13 +60,13 @@ Descarga directamente el instalador oficial listo para usar:
 
 | 🔥 Drenaje por Procesos y Telemetría | 📈 Historial por Intervalos y DarkWake |
 | :---: | :---: |
-| <img src="docs/screenshots/process_detail.jpg" alt="Drenaje por Procesos" width="100%" /> | <img src="docs/screenshots/interval_history.png" alt="Historial de Intervalos" width="100%" /> |
-| *Consumo acumulado en mWh, vatios en tiempo real y diccionario de daemons de macOS* | *Telemetría por bloques de 30 minutos y consumo con tapa cerrada* |
+| <img src="docs/screenshots/02_process_drain.jpg" alt="Drenaje por Procesos" width="100%" /> | <img src="docs/screenshots/03_interval_history.jpg" alt="Historial de Intervalos" width="100%" /> |
+| *Consumo acumulado en mWh, vatios en tiempo real y explicaciones de procesos de macOS* | *Telemetría por bloques de 30 minutos y consumos en reposo con tapa cerrada* |
 
-| 🖥️ Desglose de Componentes de Hardware | 🧭 Interfaz Liquid Glass con Barra de Menús |
+| 📉 Gráficos de Tiempo y Línea de Consumo | 🔋 Salud de Batería y Balance de 3 Celdas |
 | :---: | :---: |
-| <img src="docs/screenshots/hardware_breakdown.jpg" alt="Desglose de Hardware" width="100%" /> | <img src="docs/screenshots/dashboard_overview.png" alt="Vista General" width="100%" /> |
-| *Consumo individual: SoC Apple Silicon, Pantalla Retina, Memoria RAM y SSD* | *Diseño oscuro cristalino con menú emergente en la barra superior* |
+| <img src="docs/screenshots/04_timeline_charts.jpg" alt="Gráficos de Tiempo" width="100%" /> | <img src="docs/screenshots/05_health_cells.jpg" alt="Salud y Celdas" width="100%" /> |
+| *Curva continua de batería y eventos registrados por hora* | *Voltaje individual de cada celda (3S), capacidad nominal y sensores térmicos* |
 
 ---
 

@@ -51,7 +51,7 @@ Download the ready-to-run native installer directly:
 
 ### 🌟 Smart Analysis Dashboard
 <p align="center">
-  <img src="docs/screenshots/smart_analysis.png" alt="Smart Analysis Dashboard" width="95%" />
+  <img src="docs/screenshots/01_smart_analysis.jpg" alt="Battery Scope Smart Analysis" width="95%" />
 </p>
 
 ---
@@ -60,13 +60,13 @@ Download the ready-to-run native installer directly:
 
 | 🔥 Process Drain & Telemetry | 📈 Interval History & DarkWake |
 | :---: | :---: |
-| <img src="docs/screenshots/process_detail.jpg" alt="Process Drain" width="100%" /> | <img src="docs/screenshots/interval_history.png" alt="Interval History" width="100%" /> |
-| *Real-time mWh, wattage curves & explanations for system daemons* | *30-min block telemetry & background lid-closed power drains* |
+| <img src="docs/screenshots/02_process_drain.jpg" alt="Process Drain" width="100%" /> | <img src="docs/screenshots/03_interval_history.jpg" alt="Interval History" width="100%" /> |
+| *Real-time mWh, wattage curves & background service explanations* | *30-min block telemetry & background lid-closed power drains* |
 
-| 🖥️ Hardware Subsystems Breakdown | 🧭 Liquid Glass Overview |
+| 📉 Timeline Consumption Charts | 🔋 3-Cell Hardware Health & Telemetry |
 | :---: | :---: |
-| <img src="docs/screenshots/hardware_breakdown.jpg" alt="Hardware Breakdown" width="100%" /> | <img src="docs/screenshots/dashboard_overview.png" alt="Dashboard Overview" width="100%" /> |
-| *Power consumption per component: SoC, Retina Display, RAM, SSD* | *Clean dark liquid glass interface with live menu bar companion* |
+| <img src="docs/screenshots/04_timeline_charts.jpg" alt="Timeline Charts" width="100%" /> | <img src="docs/screenshots/05_health_cells.jpg" alt="Health & Cells" width="100%" /> |
+| *Historical timeline tracing battery and charging events* | *Live 3-cell voltage balancing, temperature sensor & cycle capacity* |
 
 ---
 
