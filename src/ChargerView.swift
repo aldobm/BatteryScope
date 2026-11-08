@@ -160,8 +160,8 @@ public struct ChargerView: View {
         let current = service.snapshot.adapterCurrent > 0 ? service.snapshot.adapterCurrent : (isPlugged ? 3.0 : 0.0)
         let manufacturer = service.snapshot.adapterManufacturer.isEmpty ? "Apple Inc." : service.snapshot.adapterManufacturer
         let adapterName = isPlugged ?
-            (service.snapshot.adapterName.isEmpty || service.snapshot.adapterName == "Desconectado" ? "USB-C Power Adapter" : service.snapshot.adapterName) :
-            "Adaptador de Corriente USB-C"
+            (service.snapshot.adapterName.isEmpty || service.snapshot.adapterName == "Desconectado" ? loc("charger_adapter_default") : service.snapshot.adapterName) :
+            loc("charger_adapter_default")
         
         return VStack(spacing: 12) {
             // Header del panel con icono delimitado para que nunca altere el tamaño
@@ -193,7 +193,7 @@ public struct ChargerView: View {
                             .lineLimit(1)
                         
                         // Estado Activo / Apagado
-                        Text(isPlugged ? "ACTIVO" : "APAGADO")
+                        Text(isPlugged ? loc("charger_status_active") : loc("charger_status_off"))
                             .font(.system(size: 9, weight: .black, design: .rounded))
                             .foregroundColor(isPlugged ? Color.liquidEmerald : Color.textMuted)
                             .padding(.horizontal, 6)
@@ -202,7 +202,7 @@ public struct ChargerView: View {
                             .clipShape(Capsule())
                     }
                     
-                    Text(isPlugged ? String(format: loc("adapter_manufacturer"), manufacturer) + " • Puerto Thunderbolt" : "Sin cargador conectado • Operando con batería")
+                    Text(isPlugged ? String(format: loc("adapter_manufacturer"), manufacturer) + " • " + loc("charger_thunderbolt_port") : loc("charger_operating_on_battery"))
                         .font(.system(size: 11))
                         .foregroundColor(Color.textSecondary)
                         .lineLimit(1)
@@ -216,7 +216,7 @@ public struct ChargerView: View {
                         .font(.system(size: 24, weight: .heavy, design: .rounded))
                         .foregroundColor(isPlugged ? Color.liquidAmber : Color.textMuted)
                     
-                    Text(isPlugged ? "PD Negociado" : "En Reposo")
+                    Text(isPlugged ? loc("charger_pd_negotiated") : loc("charger_in_standby"))
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundColor(Color.textMuted)
                 }
@@ -225,29 +225,29 @@ public struct ChargerView: View {
             // Fila de Métricas del Adaptador
             HStack(spacing: 10) {
                 panelMetricCard(
-                    title: "Voltaje",
+                    title: loc("voltage"),
                     value: isPlugged ? String(format: "%.1f V", voltage) : "-- V",
                     isPlugged: isPlugged,
                     color: Color.liquidCyan
                 )
                 
                 panelMetricCard(
-                    title: "Amperaje",
+                    title: loc("amperage"),
                     value: isPlugged ? String(format: "%.1f A", current) : "-- A",
                     isPlugged: isPlugged,
                     color: Color.liquidBlue
                 )
                 
                 panelMetricCard(
-                    title: "Protocolo",
-                    value: isPlugged ? "USB-C PD 3.0" : "Sin Fuente",
+                    title: loc("protocol_label"),
+                    value: isPlugged ? "USB-C PD 3.0" : loc("no_power_source"),
                     isPlugged: isPlugged,
                     color: isPlugged ? Color.liquidEmerald : Color.textMuted
                 )
                 
                 panelMetricCard(
-                    title: "Cable",
-                    value: isPlugged ? "Óptimo" : "--",
+                    title: loc("cable_label"),
+                    value: isPlugged ? loc("cable_optimal") : "--",
                     isPlugged: isPlugged,
                     color: isPlugged ? Color.liquidEmerald : Color.textMuted
                 )
@@ -311,7 +311,7 @@ public struct ChargerView: View {
                 .scaleEffect(isPlugged ? pulseScale : 1.0)
             
             if isPlugged {
-                Text("Transferencia:")
+                Text(loc("transfer_label"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(Color.textSecondary)
                 
@@ -328,7 +328,7 @@ public struct ChargerView: View {
                     }
                 }
             } else {
-                Text("Sin transferencia eléctrica activa")
+                Text(loc("no_transfer_active"))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(Color.textMuted)
             }
@@ -446,7 +446,7 @@ public struct ChargerView: View {
                     Image(systemName: "battery.100.bolt")
                         .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
                         .font(.system(size: 15, weight: .bold))
-                    Text("Batería del Sistema")
+                    Text(loc("system_battery"))
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
@@ -460,7 +460,7 @@ public struct ChargerView: View {
                         .frame(width: 7, height: 7)
                         .shadow(color: (isPlugged ? Color.liquidEmerald : Color.liquidCyan).opacity(0.8), radius: 3)
                     
-                    Text(isPlugged ? "RECARGANDO (FLUJO ACTIVO)" : "DRENANDO (EN BATERÍA)")
+                    Text(isPlugged ? loc("status_recharging_flow") : loc("status_draining_battery"))
                         .font(.system(size: 10, weight: .heavy, design: .rounded))
                         .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
                 }
@@ -583,7 +583,7 @@ public struct ChargerView: View {
                                     Circle()
                                         .fill(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
                                         .frame(width: 6, height: 6)
-                                    Text(isPlugged ? "Carga Rápida en Progreso" : "Modo Batería Activo")
+                                    Text(isPlugged ? loc("badge_fast_charging") : loc("badge_battery_mode"))
                                         .font(.system(size: 10, weight: .heavy, design: .rounded))
                                         .foregroundColor(isPlugged ? Color.liquidEmerald : Color.liquidCyan)
                                 }
@@ -598,8 +598,8 @@ public struct ChargerView: View {
                             
                             // Descripción con fondo translúcido suave
                             Text(isPlugged ?
-                                 (isFullyCharged ? "Batería Completa • Modo Alimentación Directa por CA" : (isNearOptimizedLimit ? "⚡ Recarga Optimizada de macOS activa (Límite al 80%/95%)" : "Iones de litio fluyendo hacia las celdas")) :
-                                 "Operando con batería interna • Descarga gradual del sistema")
+                                 (isFullyCharged ? loc("desc_full_ac_bypass") : (isNearOptimizedLimit ? loc("desc_macos_optimized") : loc("desc_lithium_ions"))) :
+                                 loc("desc_battery_discharging"))
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.white)
                                 .shadow(color: Color.black.opacity(0.7), radius: 3, x: 0, y: 1)
@@ -655,9 +655,9 @@ public struct ChargerView: View {
             HStack(spacing: 10) {
                 // 1. Nivel
                 metricDetailCard(
-                    title: "Nivel de Carga",
+                    title: loc("charge_level_label"),
                     value: "\(percent)%",
-                    subtitle: isPlugged ? "Recargando" : "Drenando",
+                    subtitle: isPlugged ? loc("status_recharging") : loc("status_draining"),
                     color: isPlugged ? Color.liquidEmerald : Color.liquidCyan
                 )
                 
@@ -667,27 +667,27 @@ public struct ChargerView: View {
                     realisticAutonomyMinutes
                 
                 metricDetailCard(
-                    title: isPlugged ? "Tiempo al 100%" : "Autonomía",
+                    title: isPlugged ? loc("time_to_100") : loc("autonomy_label"),
                     value: isPlugged ?
-                        (isFullyCharged ? "Completo" : (isNearOptimizedLimit ? "Límite 80%" : "~\(timeMinutes) m")) :
-                        String(format: "%dh %02dm", timeMinutes / 60, timeMinutes % 60),
-                    subtitle: isPlugged ? (isNearOptimizedLimit ? "Optimizado" : "Tasa Rápida") : "Estimado",
+                        (isFullyCharged ? loc("status_complete") : (isNearOptimizedLimit ? loc("status_limit_80") : "~\(timeMinutes) m")) :
+                        String(format: loc("hours_mins_format"), timeMinutes / 60, timeMinutes % 60),
+                    subtitle: isPlugged ? (isNearOptimizedLimit ? loc("rate_optimized") : loc("rate_fast")) : loc("status_estimated"),
                     color: isPlugged ? Color.liquidEmerald : Color.liquidAmber
                 )
                 
                 // 3. Temperatura
                 metricDetailCard(
-                    title: "Temperatura",
+                    title: loc("temperature"),
                     value: String(format: "%.1f °C", temp),
-                    subtitle: "Rango Óptimo",
+                    subtitle: loc("temp_optimal_range"),
                     color: Color.liquidCyan
                 )
                 
                 // 4. Salud y Ciclos
                 metricDetailCard(
-                    title: "Salud Máxima",
+                    title: loc("max_health_label"),
                     value: "\(service.snapshot.maxCapacityPercent)%",
-                    subtitle: "\(service.snapshot.cycleCount) ciclos",
+                    subtitle: String(format: loc("cycles_subtitle"), service.snapshot.cycleCount),
                     color: Color.liquidAmber
                 )
             }
@@ -701,7 +701,7 @@ public struct ChargerView: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("Celda \(idx + 1)")
+                            Text(String(format: loc("cell_unit_label"), idx + 1))
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundColor(Color.textSecondary)
                             Spacer()
