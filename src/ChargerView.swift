@@ -42,15 +42,38 @@ public struct WaterWaveShape: Shape {
 
 // MARK: - Focused & Dynamic USB-C Charger & Fluid Battery View
 
+// Modelo de partícula energética / electrón para flujo cuántico
+public struct ElectronParticle: Identifiable {
+    public let id: Int
+    public var yProgress: CGFloat // 0.0 (arriba) a 1.0 (abajo)
+    public var speed: CGFloat
+    public var delayTicks: Int // pausa aleatoria antes de caer
+    public var size: CGFloat
+    public var isAmber: Bool
+    public var isActive: Bool
+}
+
 public struct ChargerView: View {
     @ObservedObject var service: BatteryService = BatteryService.shared
     @ObservedObject var locManager: LocalizationManager = LocalizationManager.shared
     
     // Continuous animation timers
     @State private var wavePhase: CGFloat = 0.0
-    @State private var electronOffset: CGFloat = 0.0
     @State private var pulseScale: CGFloat = 1.0
     @State private var boltGlow: Double = 0.7
+    
+    // Partículas de electrones independientes para columnas laterales izquierda y derecha
+    @State private var leftColumnElectrons: [ElectronParticle] = [
+        ElectronParticle(id: 1, yProgress: 0.18, speed: 0.016, delayTicks: 0, size: 4.2, isAmber: false, isActive: true),
+        ElectronParticle(id: 2, yProgress: 0.0, speed: 0.022, delayTicks: 32, size: 4.6, isAmber: true, isActive: false),
+        ElectronParticle(id: 3, yProgress: 0.0, speed: 0.014, delayTicks: 74, size: 3.8, isAmber: false, isActive: false)
+    ]
+    
+    @State private var rightColumnElectrons: [ElectronParticle] = [
+        ElectronParticle(id: 11, yProgress: 0.52, speed: 0.019, delayTicks: 0, size: 4.0, isAmber: true, isActive: true),
+        ElectronParticle(id: 12, yProgress: 0.0, speed: 0.015, delayTicks: 45, size: 4.7, isAmber: false, isActive: false),
+        ElectronParticle(id: 13, yProgress: 0.0, speed: 0.024, delayTicks: 95, size: 3.6, isAmber: true, isActive: false)
+    ]
     
     private let animationTimer = Timer.publish(every: 0.035, on: .main, in: .common).autoconnect()
     
@@ -61,12 +84,12 @@ public struct ChargerView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
             // 1. PANEL SUPERIOR: Cargador USB-C (Tamaño Fijo y Compacto)
             chargerSourcePanel
             
-            // 2. ENTRE AMBOS: Línea VERTICAL de transferencia con flujo de electrones animados
-            verticalEnergyFlowBridge
+            // 2. ENTRE AMBOS: Dos columnas laterales de electrones random + Cápsula central
+            energyBridgeWithSideColumns
             
             // 3. PANEL INFERIOR: Batería del Sistema (Agua líquida + Rayo dorado + Textos translúcidos + Terminal + Celdas)
             fluidSystemBatteryPanel
@@ -76,7 +99,49 @@ public struct ChargerView: View {
             if wavePhase >= .pi * 2 { wavePhase = 0 }
             
             if service.snapshot.isExternalConnected {
-                electronOffset = (electronOffset + 0.035).truncatingRemainder(dividingBy: 1.0)
+                // Actualizar columna izquierda (física asíncrona y aleatoria)
+                for i in leftColumnElectrons.indices {
+                    if leftColumnElectrons[i].delayTicks > 0 {
+                        leftColumnElectrons[i].delayTicks -= 1
+                        if leftColumnElectrons[i].delayTicks == 0 {
+                            leftColumnElectrons[i].isActive = true
+                            leftColumnElectrons[i].yProgress = 0.0
+                        }
+                    } else if leftColumnElectrons[i].isActive {
+                        leftColumnElectrons[i].yProgress += leftColumnElectrons[i].speed
+                        if leftColumnElectrons[i].yProgress >= 1.0 {
+                            // Cae en la batería y descansa un tiempo random antes del siguiente átomo
+                            leftColumnElectrons[i].isActive = false
+                            leftColumnElectrons[i].yProgress = 0.0
+                            leftColumnElectrons[i].delayTicks = Int.random(in: 18...75)
+                            leftColumnElectrons[i].speed = CGFloat.random(in: 0.013...0.024)
+                            leftColumnElectrons[i].size = CGFloat.random(in: 3.6...5.0)
+                            leftColumnElectrons[i].isAmber = Bool.random()
+                        }
+                    }
+                }
+                
+                // Actualizar columna derecha (tiempos, pausas y velocidades totalmente independientes)
+                for i in rightColumnElectrons.indices {
+                    if rightColumnElectrons[i].delayTicks > 0 {
+                        rightColumnElectrons[i].delayTicks -= 1
+                        if rightColumnElectrons[i].delayTicks == 0 {
+                            rightColumnElectrons[i].isActive = true
+                            rightColumnElectrons[i].yProgress = 0.0
+                        }
+                    } else if rightColumnElectrons[i].isActive {
+                        rightColumnElectrons[i].yProgress += rightColumnElectrons[i].speed
+                        if rightColumnElectrons[i].yProgress >= 1.0 {
+                            // Cae en la batería y descansa un intervalo distinto al de la otra columna
+                            rightColumnElectrons[i].isActive = false
+                            rightColumnElectrons[i].yProgress = 0.0
+                            rightColumnElectrons[i].delayTicks = Int.random(in: 18...75)
+                            rightColumnElectrons[i].speed = CGFloat.random(in: 0.013...0.024)
+                            rightColumnElectrons[i].size = CGFloat.random(in: 3.6...5.0)
+                            rightColumnElectrons[i].isAmber = Bool.random()
+                        }
+                    }
+                }
             }
         }
         .onAppear {
@@ -210,94 +275,150 @@ public struct ChargerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
     
-    // MARK: - 2. Entre Ambos: Línea VERTICAL con Electrones Fluyendo Hacia Abajo
-    private var verticalEnergyFlowBridge: some View {
+    // MARK: - 2. Entre Ambos: Dos Columnas Laterales con Electrones y Cápsula Central
+    private var energyBridgeWithSideColumns: some View {
         let isPlugged = service.snapshot.isExternalConnected
         let watts = service.snapshot.adapterWatts > 0 ? service.snapshot.adapterWatts : (isPlugged ? 20 : 0)
         let current = service.snapshot.adapterCurrent > 0 ? service.snapshot.adapterCurrent : (isPlugged ? 3.0 : 0.0)
+        let columnHeight: CGFloat = 52
         
-        return VStack(spacing: 3) {
-            // Tramo vertical superior con electrones
-            electronVerticalLine(height: 18, offset: electronOffset, isPlugged: isPlugged)
+        return HStack(alignment: .center) {
+            // Columna Izquierda: Flujo cuántico de electrones asíncrono
+            electronColumnView(particles: leftColumnElectrons, isPlugged: isPlugged, height: columnHeight)
+                .frame(width: 24)
             
-            // Cápsula central con el texto completo de transferencia
-            HStack(spacing: 8) {
-                Image(systemName: isPlugged ? "bolt.fill" : "powerplug")
-                    .foregroundColor(isPlugged ? Color.liquidAmber : Color.textMuted)
-                    .font(.system(size: 11, weight: .bold))
-                    .scaleEffect(isPlugged ? pulseScale : 1.0)
-                
-                if isPlugged {
-                    Text("Transferencia:")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(Color.textSecondary)
-                    
-                    Text("\(watts) W • \(String(format: "%.1f A", current))")
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundColor(Color.liquidEmerald)
-                    
-                    // Flechitas de flujo hacia abajo
-                    HStack(spacing: 2) {
-                        ForEach(0..<3) { i in
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 7, weight: .black))
-                                .foregroundColor(Color.liquidCyan.opacity(Double(i + 1) * 0.33))
-                        }
-                    }
-                } else {
-                    Text("Sin transferencia eléctrica activa")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color.textMuted)
-                }
-            }
-            .fixedSize(horizontal: true, vertical: false)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 5)
-            .background(
-                Capsule()
-                    .fill(Color(hex: "0D061A").opacity(0.55))
-            )
-            .overlay(
-                Capsule()
-                    .strokeBorder(isPlugged ? Color.liquidCyan.opacity(0.40) : Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .shadow(color: isPlugged ? Color.liquidCyan.opacity(0.20) : Color.clear, radius: 8)
+            Spacer(minLength: 20)
             
-            // Tramo vertical inferior que entra a la batería
-            electronVerticalLine(height: 18, offset: (electronOffset + 0.5).truncatingRemainder(dividingBy: 1.0), isPlugged: isPlugged)
+            // Cápsula Central: Estado de Transferencia Energética
+            transferBadge(isPlugged: isPlugged, watts: watts, current: current)
+            
+            Spacer(minLength: 20)
+            
+            // Columna Derecha: Flujo cuántico de electrones con tiempos y velocidades distintas
+            electronColumnView(particles: rightColumnElectrons, isPlugged: isPlugged, height: columnHeight)
+                .frame(width: 24)
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 48)
+        .frame(height: columnHeight)
     }
     
-    // Generador de electrones animados que viajan verticalmente de arriba hacia abajo
-    private func electronVerticalLine(height: CGFloat, offset: CGFloat, isPlugged: Bool) -> some View {
-        ZStack {
-            // Línea guía vertical
-            Rectangle()
-                .fill(isPlugged ? Color.liquidCyan.opacity(0.25) : Color.white.opacity(0.06))
-                .frame(width: 2, height: height)
+    // Cápsula central fija que informa los watts y amperios transferidos
+    private func transferBadge(isPlugged: Bool, watts: Int, current: Double) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: isPlugged ? "bolt.fill" : "powerplug")
+                .foregroundColor(isPlugged ? Color.liquidAmber : Color.textMuted)
+                .font(.system(size: 11, weight: .bold))
+                .scaleEffect(isPlugged ? pulseScale : 1.0)
             
             if isPlugged {
-                // Electrones luminosos en movimiento vertical continuo
-                ForEach(0..<3) { i in
-                    let progress = (offset + CGFloat(i) * 0.33).truncatingRemainder(dividingBy: 1.0)
-                    let dotY = (progress * height) - (height / 2)
-                    
-                    Circle()
-                        .fill(
+                Text("Transferencia:")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color.textSecondary)
+                
+                Text("\(watts) W • \(String(format: "%.1f A", current))")
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color.liquidEmerald)
+                
+                // Flechitas de flujo hacia abajo
+                HStack(spacing: 2) {
+                    ForEach(0..<3) { i in
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 7, weight: .black))
+                            .foregroundColor(Color.liquidCyan.opacity(Double(i + 1) * 0.33))
+                    }
+                }
+            } else {
+                Text("Sin transferencia eléctrica activa")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(Color.textMuted)
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color(hex: "0D061A").opacity(0.55))
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(isPlugged ? Color.liquidCyan.opacity(0.40) : Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: isPlugged ? Color.liquidCyan.opacity(0.20) : Color.clear, radius: 8)
+    }
+    
+    // Columna vertical de transporte de energía con electrones en caída aleatoria
+    private func electronColumnView(particles: [ElectronParticle], isPlugged: Bool, height: CGFloat) -> some View {
+        ZStack(alignment: .top) {
+            // 1. Línea guía vertical (Rail conductor de plasma)
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            isPlugged ? Color.liquidAmber.opacity(0.35) : Color.white.opacity(0.06),
+                            isPlugged ? Color.liquidCyan.opacity(0.35) : Color.white.opacity(0.04)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 2, height: height)
+                .shadow(color: isPlugged ? Color.liquidCyan.opacity(0.30) : Color.clear, radius: 3)
+            
+            // 2. Terminal superior de conexión
+            Capsule()
+                .fill(isPlugged ? Color.liquidAmber.opacity(0.70) : Color.white.opacity(0.12))
+                .frame(width: 10, height: 3)
+                .shadow(color: isPlugged ? Color.liquidAmber.opacity(0.80) : Color.clear, radius: 3)
+            
+            // 3. Terminal inferior de entrada a la celda
+            Capsule()
+                .fill(isPlugged ? Color.liquidCyan.opacity(0.70) : Color.white.opacity(0.12))
+                .frame(width: 10, height: 3)
+                .shadow(color: isPlugged ? Color.liquidCyan.opacity(0.80) : Color.clear, radius: 3)
+                .offset(y: height - 3)
+            
+            // 4. Electrones luminosos con trayectorias no sincronizadas y espaciadas
+            if isPlugged {
+                ForEach(particles) { p in
+                    if p.isActive && p.yProgress >= 0.0 && p.yProgress <= 1.0 {
+                        let yPos = p.yProgress * height
+                        let color = p.isAmber ? Color.liquidAmber : Color.liquidCyan
+                        // Suavizado en extremos para que surjan y se fundan de forma natural
+                        let fade = min(1.0, min(p.yProgress / 0.12, (1.0 - p.yProgress) / 0.12))
+                        
+                        ZStack {
+                            // Estela luminosa cometaria hacia arriba
                             LinearGradient(
-                                colors: [Color.liquidAmber, Color.liquidCyan],
+                                colors: [color.opacity(0.0), color.opacity(0.55 * fade)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
-                        )
-                        .frame(width: 4.5, height: 4.5)
-                        .shadow(color: Color.liquidCyan.opacity(0.9), radius: 3)
-                        .offset(y: dotY)
+                            .frame(width: 2.2, height: 11)
+                            .offset(y: -5)
+                            
+                            // Halo difuso exterior
+                            Circle()
+                                .fill(color.opacity(0.45 * fade))
+                                .frame(width: p.size * 2.5, height: p.size * 2.5)
+                                .blur(radius: 2)
+                            
+                            // Anillo energético
+                            Circle()
+                                .stroke(color.opacity(fade), lineWidth: 1)
+                                .frame(width: p.size * 1.35, height: p.size * 1.35)
+                            
+                            // Núcleo blanco de alta energía
+                            Circle()
+                                .fill(Color.white.opacity(fade))
+                                .frame(width: p.size, height: p.size)
+                        }
+                        .offset(y: yPos - 5)
+                    }
                 }
             }
         }
-        .frame(height: height)
+        .frame(width: 24, height: height)
     }
     
     // MARK: - 3. Panel Inferior: Batería del Sistema (Agua Líquida + Rayo Dorado + Textos Translúcidos + Terminal)
