@@ -68,7 +68,7 @@
 Clone this repository and run the standalone build script:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/BatteryScope.git
+git clone https://github.com/aldobm/BatteryScope.git
 cd BatteryScope
 chmod +x build.sh
 ./build.sh
