@@ -277,7 +277,7 @@ public struct MainView: View {
                             case .healthAndCells:
                                 healthAndCellsView
                             case .charger:
-                                chargerDetailsView
+                                ChargerView()
                             case .hardwareBreakdown:
                                 HardwareBreakdownView()
                             case .startupApps:

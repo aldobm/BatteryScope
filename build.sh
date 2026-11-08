@@ -68,6 +68,7 @@ swiftc \
   "$DIR/src/StartupAppsView.swift" \
   "$DIR/src/HardwareBreakdownService.swift" \
   "$DIR/src/HardwareBreakdownView.swift" \
+  "$DIR/src/ChargerView.swift" \
   "$DIR/src/SettingsView.swift" \
   "$DIR/src/MainView.swift" \
   "$DIR/src/MenuBarView.swift" \
