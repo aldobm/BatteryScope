@@ -90,8 +90,8 @@ Unlike standard task managers that just show cryptic numbers and PIDs, Battery S
 
 | ⚡ USB-C Charger & Power Delivery | 🖥️ Hardware Subsystems Breakdown |
 | :---: | :---: |
-| <img src="docs/screenshots/06_usbc_charger.jpg" alt="USB-C Charger" width="100%" /> | <img src="docs/screenshots/07_hardware_breakdown.jpg" alt="Hardware Breakdown" width="100%" /> |
-| *Negotiated PD wattage, adapter voltage, amperage & cable health* | *Real-time energy draw per component: SoC, Retina Display, RAM, SSD* |
+| <img src="docs/screenshots/06_usbc_charger.jpg" alt="USB-C Charger & Fluid Battery" width="100%" /> | <img src="docs/screenshots/07_hardware_breakdown.jpg" alt="Hardware Breakdown" width="100%" /> |
+| *Live charger telemetry, dual-column quantum energy conduit & dynamic fluid battery level* | *Real-time energy draw per component: SoC, Retina Display, RAM, SSD* |
 
 ---
 
@@ -133,8 +133,9 @@ Battery Scope sits discreetly in your native macOS menu bar. A single click open
   - Live wattage (W), voltage (V), and amperage (A) monitoring.
   - Individual 3-cell voltage balance visualizer.
   - Cycle count, retained design capacity, and health condition.
-- **⚡ USB-C Charger & Power Delivery Inspector**:
-  - Live negotiated wattage, voltage, amperage, and cable condition.
+- **⚡ USB-C Charger & Dynamic Fluid Battery Inspector**:
+  - Live negotiated wattage, adapter voltage, amperage, and cable condition.
+  - Dual-column quantum electron conduit animation and interactive wave fluid tank with 3S cell balancing.
 - **📊 Temporal Consumption & Interval History**:
   - Interactive block bar charts for hourly / 30-min drain history.
   - DarkWake / Lid Closed background power tracking.

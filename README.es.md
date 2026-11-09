@@ -88,10 +88,10 @@ A diferencia de los monitores de tareas tradicionales que solo muestran números
 
 ### 🔌 Inspección de Hardware y Entrega de Energía
 
-| ⚡ Cargador USB-C y Power Delivery | 🖥️ Desglose de Subsistemas de Hardware |
+| ⚡ Cargador USB-C y Batería Líquida | 🖥️ Desglose de Subsistemas de Hardware |
 | :---: | :---: |
-| <img src="docs/screenshots/06_usbc_charger.jpg" alt="Cargador USB-C" width="100%" /> | <img src="docs/screenshots/07_hardware_breakdown.jpg" alt="Desglose de Hardware" width="100%" /> |
-| *Potencia PD negociada, voltaje, amperaje y estado del cable* | *Consumo en tiempo real por componente: SoC M1/M2/M3, Pantalla, RAM y SSD* |
+| <img src="docs/screenshots/06_usbc_charger.jpg" alt="Cargador USB-C y Batería Líquida" width="100%" /> | <img src="docs/screenshots/07_hardware_breakdown.jpg" alt="Desglose de Hardware" width="100%" /> |
+| *Telemetría de carga en vivo, columnas cuánticas de energía y nivel de batería líquida* | *Consumo en tiempo real por componente: SoC M1/M2/M3, Pantalla, RAM y SSD* |
 
 ---
 
@@ -133,8 +133,9 @@ Battery Scope se integra discretamente en la barra de menús de macOS. Un solo c
   - Monitoreo en tiempo real de potencia en vatios (W), voltaje (V) y amperaje (A).
   - Balance de voltaje individual de las 3 celdas de la batería.
   - Conteo de ciclos, capacidad nominal retenida y condición de salud.
-- **⚡ Inspector de Cargador USB-C y Power Delivery**:
-  - Detección de perfil PD negociado, potencia del cargador, voltaje y estado del cable.
+- **⚡ Inspector de Cargador USB-C y Batería Líquida Dinámica**:
+  - Detección de perfil PD negociado, potencia del cargador, voltaje, amperaje y estado del cable.
+  - Columnas de transferencia cuántica con flujo asíncrono de electrones y tanque de agua líquida ondulante con balance de celdas 3S.
 - **📊 Historial de Consumo por Intervalos**:
   - Gráfico de barras por bloques de 30 minutos o 1 hora.
   - Detección de consumos en suspensión (*DarkWake*) con la tapa cerrada.
