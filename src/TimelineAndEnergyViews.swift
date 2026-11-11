@@ -723,8 +723,11 @@ struct BlockBarColumnView: View {
         let chartAreaHeight = max(40.0, availableHeight - 22.0)
         // Hard-cap the bar so it and the badge NEVER exceed chartAreaHeight
         let maxBarHeight = max(20.0, chartAreaHeight - badgeHeight - 6.0)
-        let normVal = block.batteryDrainPercent / max(0.1, maxDrain)
-        let barHeightRatio = CGFloat(max(0.0, min(1.0, normVal)))
+        
+        // El tamaño de la barra es estrictamente proporcional al nivel real de batería (0% - 100%)
+        // De esta forma dos barras de 48% tienen exactamente el mismo tamaño, y 67% es mayor que 65%.
+        let level = max(1.0, min(100.0, Double(block.batteryLevel)))
+        let barHeightRatio = CGFloat(level / 100.0)
         let minBarHeight: CGFloat = 8.0
         let totalHeight: CGFloat = minBarHeight + (maxBarHeight - minBarHeight) * barHeightRatio
         
@@ -738,7 +741,7 @@ struct BlockBarColumnView: View {
                 // Architectural colored app segments
                 VStack(spacing: 0) {
                     ForEach(block.topApps) { appShare in
-                        let segHeight = max(2.0, totalHeight * CGFloat(appShare.percentage / 100.0))
+                        let segHeight = max(1.0, totalHeight * CGFloat(appShare.percentage / 100.0))
                         Rectangle()
                             .fill(Color(hex: appShare.colorHex))
                             .frame(width: barWidth, height: segHeight)
@@ -747,7 +750,7 @@ struct BlockBarColumnView: View {
                             }
                     }
                 }
-                .frame(width: barWidth, height: totalHeight)
+                .frame(width: barWidth, height: totalHeight, alignment: .bottom)
                 .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 3, style: .continuous)
