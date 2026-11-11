@@ -755,21 +755,20 @@ struct BlockBarColumnView: View {
                 )
                 .shadow(color: isSelected ? Color.liquidCyan.opacity(0.85) : Color.clear, radius: 8)
                 
-                // TOP ENERGY LABEL: Horizontal orientation (ícono + texto juntos en una sola línea)
+                // TOP ENERGY LABEL: Muestra el nivel exacto de batería en ese tiempo (ej. 50%, 40%, 39%)
                 HStack(spacing: 3) {
-                    if block.hasBolt {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundColor(Color.liquidAmber)
-                    } else if block.hasBattery {
-                        Image(systemName: "battery.75")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundColor(Color.liquidCyan)
-                    }
                     if block.hasMoon {
                         Image(systemName: "moon.fill")
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(Color(hex: "CBD5E0"))
+                    } else if block.hasBolt {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(Color.liquidAmber)
+                    } else {
+                        Image(systemName: "battery.75")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(Color.liquidCyan)
                     }
                     
                     Text(block.numberText)
@@ -934,6 +933,7 @@ struct IntervalHorizontalSliderBar: View {
 
 public struct TodayBlocksView: View {
     @ObservedObject var service = BatteryService.shared
+    @ObservedObject private var locManager = LocalizationManager.shared
     @State private var selectedBlockId: String? = nil
     @State private var hoveredShare: AppBlockShare? = nil
     @State private var sliderFraction: Double = 1.0
@@ -951,7 +951,7 @@ public struct TodayBlocksView: View {
     
     private var dayFormatter: DateFormatter {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "es_ES")
+        f.locale = Locale(identifier: locManager.currentLanguage.rawValue)
         f.dateStyle = .medium
         return f
     }
@@ -961,17 +961,17 @@ public struct TodayBlocksView: View {
             // Header with Calendar, Pause/Resume & Interval Selector
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Historial")
+                    Text(loc("interval_history_title"))
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Detección de reposo, tapa cerrada y horas")
+                    Text(loc("interval_history_subtitle"))
                         .font(.system(size: 11))
                         .foregroundColor(Color.textSecondary)
                 }
                 
                 Spacer()
                 
-                // BOTÓN PAUSAR / REANUDAR ("cuando de click y este analizando que se ponga en pausa y arriba un boton para reanudar")
+                // BOTÓN PAUSAR / REANUDAR
                 Button(action: {
                     withAnimation(.spring(response: 0.22)) {
                         service.isIntervalAnalysisPaused.toggle()
@@ -983,7 +983,7 @@ public struct TodayBlocksView: View {
                     HStack(spacing: 6) {
                         Image(systemName: service.isIntervalAnalysisPaused ? "play.fill" : "pause.fill")
                             .font(.system(size: 10, weight: .bold))
-                        Text(service.isIntervalAnalysisPaused ? "Reanudar Análisis" : "Pausar en Vivo")
+                        Text(service.isIntervalAnalysisPaused ? loc("resume_analysis") : loc("pause_live"))
                             .font(.system(size: 11.5, weight: .bold, design: .rounded))
                     }
                     .foregroundColor(service.isIntervalAnalysisPaused ? Color.liquidAmber : Color.liquidCyan)
@@ -1004,7 +1004,7 @@ public struct TodayBlocksView: View {
                     .shadow(color: service.isIntervalAnalysisPaused ? Color.liquidAmber.opacity(0.3) : Color.clear, radius: 4)
                 }
                 .buttonStyle(.plain)
-                .help(service.isIntervalAnalysisPaused ? "Reanudar la actualización automática en vivo" : "Pausar actualización para inspeccionar sin que se mueva")
+                .help(service.isIntervalAnalysisPaused ? loc("resume_live_help") : loc("pause_live_help"))
                 
                 // Interval Switcher (30 Min, 1 Hora, Todo el Día)
                 HStack(spacing: 4) {
@@ -1012,7 +1012,7 @@ public struct TodayBlocksView: View {
                         Button(action: {
                             service.changeIntervalMode(mode)
                         }) {
-                            Text(mode.rawValue)
+                            Text(mode.localizedName)
                                 .font(.system(size: 11, weight: service.intervalMode == mode ? .bold : .medium, design: .rounded))
                                 .foregroundColor(service.intervalMode == mode ? .white : Color.textSecondary)
                                 .padding(.horizontal, 10)
@@ -1037,7 +1037,7 @@ public struct TodayBlocksView: View {
                     Image(systemName: "calendar")
                         .foregroundColor(Color.liquidCyan)
                         .font(.system(size: 12))
-                    Text("Día analizado:")
+                    Text(loc("day_analyzed"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(Color.textSecondary)
                     
@@ -1047,7 +1047,7 @@ public struct TodayBlocksView: View {
                                 service.changeSelectedDate(d)
                             }) {
                                 HStack {
-                                    Text(Calendar.current.isDateInToday(d) ? "Hoy (\(dayFormatter.string(from: d)))" : dayFormatter.string(from: d))
+                                    Text(Calendar.current.isDateInToday(d) ? "\(loc("today_label")) (\(dayFormatter.string(from: d)))" : dayFormatter.string(from: d))
                                     if Calendar.current.isDate(d, inSameDayAs: service.selectedDate) {
                                         Image(systemName: "checkmark")
                                     }
@@ -1056,7 +1056,7 @@ public struct TodayBlocksView: View {
                         }
                     } label: {
                         HStack(spacing: 5) {
-                            Text(Calendar.current.isDateInToday(service.selectedDate) ? "Hoy (\(dayFormatter.string(from: service.selectedDate)))" : dayFormatter.string(from: service.selectedDate))
+                            Text(Calendar.current.isDateInToday(service.selectedDate) ? "\(loc("today_label")) (\(dayFormatter.string(from: service.selectedDate)))" : dayFormatter.string(from: service.selectedDate))
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                             Image(systemName: "chevron.down")
@@ -1085,7 +1085,7 @@ public struct TodayBlocksView: View {
                     }
                     HStack(spacing: 4) {
                         Rectangle().fill(Color(hex: "4A5568")).frame(width: 8, height: 8)
-                        Text("Tapa Cerrada").font(.system(size: 10)).foregroundColor(Color.textSecondary)
+                        Text(loc("lid_closed")).font(.system(size: 10)).foregroundColor(Color.textSecondary)
                     }
                 }
             }
@@ -1260,7 +1260,16 @@ public struct TodayBlocksView: View {
                         
                         HStack(spacing: 16) {
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text(target.isCharging ? "Alimentación" : "Drenaje de Batería")
+                                Text(loc("battery_level"))
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(Color.textMuted)
+                                Text("\(target.batteryLevel)%")
+                                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                                    .foregroundColor(target.isCharging ? Color.liquidAmber : Color.liquidCyan)
+                            }
+                            
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(target.isCharging ? loc("power_supply") : loc("battery_drain"))
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(Color.textMuted)
                                 
@@ -1276,7 +1285,7 @@ public struct TodayBlocksView: View {
                             }
                             
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text(target.isCharging ? "Consumo de Red" : "Energía Total")
+                                Text(target.isCharging ? loc("grid_consumption") : loc("total_energy"))
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(Color.textMuted)
                                 Text(String(format: "%.0f mWh", target.totalMWh))
@@ -1288,7 +1297,7 @@ public struct TodayBlocksView: View {
                     
                     Divider().background(Color.white.opacity(0.12))
                     
-                    Text("¿Quiénes usaron la batería en este intervalo?")
+                    Text(loc("who_used_battery"))
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     
@@ -1303,7 +1312,7 @@ public struct TodayBlocksView: View {
                                     
                                     Spacer()
                                     
-                                    Text(String(format: "%.0f%% del consumo", share.percentage))
+                                    Text(String(format: "%.0f%% %@", share.percentage, loc("of_consumption")))
                                         .font(.system(size: 12, weight: .heavy, design: .rounded))
                                         .foregroundColor(Color(hex: share.colorHex))
                                     

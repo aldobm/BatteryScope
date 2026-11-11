@@ -96,26 +96,26 @@ public enum SystemIntervalCondition: String, Codable {
     
     public var shortBadge: String {
         switch self {
-        case .lidClosedBattery: return "Pantalla cerrada • Con batería"
-        case .lidClosedAC: return "Pantalla cerrada • Con cargador (CA)"
-        case .lidOpenBattery: return "Pantalla abierta • Con batería"
-        case .lidOpenAC: return "Pantalla abierta • Con cargador (CA)"
-        case .lidClosedBackgroundActive: return "Pantalla cerrada • Tarea activa"
+        case .lidClosedBattery: return loc("cond_lid_closed_battery_badge")
+        case .lidClosedAC: return loc("cond_lid_closed_ac_badge")
+        case .lidOpenBattery: return loc("cond_lid_open_battery_badge")
+        case .lidOpenAC: return loc("cond_lid_open_ac_badge")
+        case .lidClosedBackgroundActive: return loc("cond_lid_closed_bg_badge")
         }
     }
     
     public var detailedDescription: String {
         switch self {
         case .lidClosedBattery:
-            return "El Mac estuvo en reposo con la pantalla cerrada funcionando con batería. Consumo mínimo de mantenimiento."
+            return loc("cond_lid_closed_battery_desc")
         case .lidClosedAC:
-            return "El Mac estuvo con la pantalla cerrada y conectado al cargador de corriente (CA). Drenaje de batería 0%."
+            return loc("cond_lid_closed_ac_desc")
         case .lidOpenBattery:
-            return "El Mac estuvo encendido y activo con la pantalla abierta funcionando con batería."
+            return loc("cond_lid_open_battery_desc")
         case .lidOpenAC:
-            return "El Mac estuvo encendido con la pantalla abierta y conectado al cargador de corriente (CA). Drenaje de batería 0%."
+            return loc("cond_lid_open_ac_desc")
         case .lidClosedBackgroundActive:
-            return "El Mac tuvo la pantalla cerrada pero continuó procesando tareas en segundo plano (transferencia de archivos, copia o comando activo)."
+            return loc("cond_lid_closed_bg_desc")
         }
     }
 }
@@ -136,6 +136,7 @@ public struct TodayHalfHourBlock: Identifiable, Equatable {
     public let topEnergyLabel: String
     public let condition: SystemIntervalCondition
     public let numberText: String
+    public let batteryLevel: Int
     public let hasMoon: Bool
     public let hasBolt: Bool
     public let hasBattery: Bool
@@ -147,6 +148,14 @@ public enum ConsumptionIntervalMode: String, CaseIterable, Identifiable {
     case allDay = "Todo el Día"
     
     public var id: String { rawValue }
+    
+    public var localizedName: String {
+        switch self {
+        case .halfHour: return loc("mode_30min")
+        case .oneHour: return loc("mode_1hour")
+        case .allDay: return loc("mode_all_day")
+        }
+    }
 }
 
 // MARK: - Battery Snapshot Model
@@ -837,6 +846,38 @@ public class BatteryService: ObservableObject {
             let numberText: String
             let chartBarPercent: Double
             
+            // 3. Nivel Real de Batería en este Intervalo (Interpolación y Registro Histórico)
+            let blockBatteryLevel: Int = {
+                // Si es el bloque actual en vivo (hoy)
+                if blockEnd >= maxTime.addingTimeInterval(-1800) && isToday {
+                    return self.snapshot.chargePercent
+                }
+                // Si existen puntos de muestreo exactos dentro de este bloque
+                if let lastMatch = matchingPts.last {
+                    return lastMatch.batteryPercent
+                }
+                // Si no, buscar el punto anterior más cercano y el posterior más cercano para interpolar
+                let prevPt = historyPoints.last(where: { $0.timestamp <= blockStart })
+                let nextPt = historyPoints.first(where: { $0.timestamp >= blockEnd })
+                
+                if let p = prevPt, let n = nextPt {
+                    let totalTime = n.timestamp.timeIntervalSince(p.timestamp)
+                    if totalTime > 0 {
+                        let elapsed = blockStart.timeIntervalSince(p.timestamp)
+                        let progress = elapsed / totalTime
+                        let interpolated = Double(p.batteryPercent) + Double(n.batteryPercent - p.batteryPercent) * progress
+                        return max(1, min(100, Int(round(interpolated))))
+                    }
+                    return p.batteryPercent
+                } else if let p = prevPt {
+                    return p.batteryPercent
+                } else if let n = nextPt {
+                    return n.batteryPercent
+                } else {
+                    return self.snapshot.chargePercent
+                }
+            }()
+            
             if isDominantSleep {
                 if hasActiveBgTask {
                     condition = .lidClosedBackgroundActive
@@ -844,11 +885,9 @@ public class BatteryService: ObservableObject {
                     hasBolt = isConnectedToAC
                     if isConnectedToAC {
                         drainPct = 0.0
-                        numberText = rechargePct > 0 ? String(format: "+%.0f%%", rechargePct) : "0%"
                         chartBarPercent = rechargePct > 0 ? rechargePct : 1.2
                     } else {
                         drainPct = 1.0
-                        numberText = String(format: "%.0f%%", drainPct)
                         chartBarPercent = drainPct
                     }
                 } else if isConnectedToAC {
@@ -856,7 +895,6 @@ public class BatteryService: ObservableObject {
                     hasMoon = true
                     hasBolt = true
                     drainPct = 0.0
-                    numberText = rechargePct > 0 ? String(format: "+%.0f%%", rechargePct) : "0%"
                     chartBarPercent = rechargePct > 0 ? rechargePct : 1.0
                 } else {
                     condition = .lidClosedBattery
@@ -873,11 +911,9 @@ public class BatteryService: ObservableObject {
                     } else {
                         drainPct = mode == .halfHour ? 0.6 : (mode == .oneHour ? 1.0 : 3.0)
                     }
-                    numberText = String(format: "%.0f%%", drainPct)
                     // Visual proportionality: 1% drain is strictly 1.0 bar height!
                     chartBarPercent = max(0.2, drainPct)
                 }
-                topEnergyLabel = "\(numberText) \(hasBolt ? "⚡️" : "")\(hasMoon ? "🌙" : "")".trimmingCharacters(in: .whitespaces)
             } else {
                 // Screen Open
                 if isConnectedToAC {
@@ -885,7 +921,6 @@ public class BatteryService: ObservableObject {
                     hasMoon = false
                     hasBolt = true
                     drainPct = 0.0
-                    numberText = rechargePct > 0 ? String(format: "+%.0f%%", rechargePct) : "0%"
                     chartBarPercent = rechargePct > 0 ? rechargePct : 1.5
                 } else {
                     condition = .lidOpenBattery
@@ -898,11 +933,13 @@ public class BatteryService: ObservableObject {
                     } else {
                         drainPct = mode == .halfHour ? 2.5 : (mode == .oneHour ? 5.0 : 15.0)
                     }
-                    numberText = String(format: "%.0f%%", drainPct)
                     chartBarPercent = max(0.5, drainPct)
                 }
-                topEnergyLabel = "\(numberText) \(hasBolt ? "⚡️" : "")".trimmingCharacters(in: .whitespaces)
             }
+            
+            // Etiqueta superior sobre cada barra: Muestra el nivel exacto de batería en ese tiempo (ej. 50%, 40%, 39%)
+            numberText = "\(blockBatteryLevel)%"
+            topEnergyLabel = "\(numberText) \(hasBolt ? "⚡️" : "")\(hasMoon ? "🌙" : "")".trimmingCharacters(in: .whitespaces)
             
             var shares: [AppBlockShare] = []
             let totalMWh = max(15.0, (isConnectedToAC ? (rechargePct > 0 ? rechargePct * 65.0 : 120.0) : drainPct * 55.0))
@@ -1032,6 +1069,7 @@ public class BatteryService: ObservableObject {
                 topEnergyLabel: topEnergyLabel,
                 condition: condition,
                 numberText: numberText,
+                batteryLevel: blockBatteryLevel,
                 hasMoon: hasMoon,
                 hasBolt: hasBolt,
                 hasBattery: hasBattery
@@ -1071,13 +1109,14 @@ public class BatteryService: ObservableObject {
             df.dateFormat = "yyyy-MM-dd HH:mm:ss"
             
             var results: [HourlyHistoryPoint] = []
-            let regex = try? NSRegularExpression(pattern: #"(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}).*?Using\s(Batt|AC)\(Charge:\s*(\d+)\)"#)
+            // Regex flexible que captura todos los registros pmset de batería y corriente alterna
+            let regex = try? NSRegularExpression(pattern: #"(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}).*?Using\s*(Batt|AC)\s*\(Charge:\s*(\d+)"#)
             
             let nsOutput = output as NSString
             let matches = regex?.matches(in: output, range: NSRange(location: 0, length: nsOutput.length)) ?? []
             let now = Date()
             
-            for match in matches.suffix(120) {
+            for match in matches.suffix(600) {
                 if match.numberOfRanges >= 4 {
                     let dateStr = nsOutput.substring(with: match.range(at: 1))
                     let source = nsOutput.substring(with: match.range(at: 2))
@@ -1099,11 +1138,12 @@ public class BatteryService: ObservableObject {
                     }
                 }
             }
+            results.sort { $0.timestamp < $1.timestamp }
             if results.isEmpty {
                 results.append(HourlyHistoryPoint(
                     timestamp: Date(),
-                    batteryPercent: 90,
-                    isCharging: true,
+                    batteryPercent: self.snapshot.chargePercent > 0 ? self.snapshot.chargePercent : 80,
+                    isCharging: self.snapshot.isExternalConnected,
                     topAppName: "Cargador USB-C",
                     topAppPower: 0,
                     notes: "Actual"
