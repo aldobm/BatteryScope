@@ -970,6 +970,15 @@ public struct TodayBlocksView: View {
         return blocks.last
     }
     
+    // Proceso a mostrar en el panel: si se pasa el cursor sobre una barra muestra esa app;
+    // de lo contrario, muestra de forma predeterminada el proceso principal del bloque seleccionado (sin saltos).
+    private var currentInspectorShare: AppBlockShare? {
+        if let h = hoveredShare {
+            return h
+        }
+        return activeBlock?.topApps.first
+    }
+    
     private var dayFormatter: DateFormatter {
         let f = DateFormatter()
         f.locale = Locale(identifier: locManager.currentLanguage.rawValue)
@@ -1243,28 +1252,79 @@ public struct TodayBlocksView: View {
             .padding(18)
             .liquidGlassCard(cornerRadius: 18)
             
-            // Hover Tooltip Bar
-            if let hShare = hoveredShare {
-                HStack(spacing: 12) {
-                    Circle().fill(Color(hex: hShare.colorHex)).frame(width: 9, height: 9)
-                    Text(hShare.appName)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                    Text(String(format: "%.0f%% (%.0f mWh)", hShare.percentage, hShare.mWh))
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Color(hex: hShare.colorHex))
-                    Spacer()
-                    Text(hShare.description)
-                        .font(.system(size: 11))
+            // Panel Informativo de Proceso e Inspección (Siempre presente y con altura fija para evitar saltos de pantalla)
+            HStack(alignment: .center, spacing: 14) {
+                if let share = currentInspectorShare {
+                    // Indicador circular de color + Nombre y porcentaje del proceso en dos líneas
+                    HStack(spacing: 9) {
+                        Circle()
+                            .fill(Color(hex: share.colorHex))
+                            .frame(width: 10, height: 10)
+                            .shadow(color: Color(hex: share.colorHex).opacity(0.6), radius: 3)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(share.appName)
+                                .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            
+                            Text(String(format: "%.0f%% (%.0f mWh)", share.percentage, share.mWh))
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(Color(hex: share.colorHex))
+                        }
+                    }
+                    .frame(minWidth: 220, alignment: .leading)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: 32)
+                    
+                    // Explicación completa sin recortes excesivos
+                    Text(share.description)
+                        .font(.system(size: 11.5))
                         .foregroundColor(Color.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    // Valor predeterminado cuando no hay proceso seleccionado
+                    HStack(spacing: 9) {
+                        Image(systemName: "cursorarrow.rays")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color.liquidCyan)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(loc("app_inspection_title"))
+                                .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            
+                            Text(loc("hover_hint_badge"))
+                                .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                                .foregroundColor(Color.liquidCyan)
+                        }
+                    }
+                    .frame(minWidth: 220, alignment: .leading)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: 32)
+                    
+                    Text(loc("hover_hint_desc"))
+                        .font(.system(size: 11.5))
+                        .foregroundColor(Color.textSecondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color(hex: "1F0F38"))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.white.opacity(0.15), lineWidth: 1))
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(minHeight: 56)
+            .background(Color(hex: "1F0F38"))
+            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+            )
             
             // Selected Block Detail Inspector Card
             if let target = activeBlock {
