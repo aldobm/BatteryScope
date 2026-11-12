@@ -1036,37 +1036,6 @@ public struct TodayBlocksView: View {
                 .buttonStyle(.plain)
                 .help(service.isIntervalAnalysisPaused ? loc("resume_live_help") : loc("pause_live_help"))
                 
-                // BOTÓN SIMULACIÓN 100%
-                Button(action: {
-                    withAnimation(.spring(response: 0.22)) {
-                        service.toggleSimulate100Percent()
-                    }
-                }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "bolt.badge.checkmark.fill")
-                            .font(.system(size: 10, weight: .bold))
-                        Text(service.isSimulating100 ? "100% Activo" : "Simular 100%")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(service.isSimulating100 ? Color.liquidEmerald : Color.white.opacity(0.85))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        service.isSimulating100 ?
-                        Color.liquidEmerald.opacity(0.22) :
-                        Color.white.opacity(0.08)
-                    )
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule().strokeBorder(
-                            service.isSimulating100 ? Color.liquidEmerald.opacity(0.7) : Color.white.opacity(0.18),
-                            lineWidth: 1
-                        )
-                    )
-                }
-                .buttonStyle(.plain)
-                .help("Simular barras de batería al 100% para verificar los límites y espaciados verticales del gráfico")
-                
                 // Interval Switcher (30 Min, 1 Hora, Todo el Día)
                 HStack(spacing: 4) {
                     ForEach(ConsumptionIntervalMode.allCases) { mode in
