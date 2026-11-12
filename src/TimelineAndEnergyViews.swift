@@ -8,6 +8,7 @@ public struct TimelineChartView: View {
     @ObservedObject private var locManager = LocalizationManager.shared
     @State private var hoveredPoint: HourlyHistoryPoint? = nil
     @State private var sliderFraction: Double = 1.0
+    @State private var zoomLevel: Double = 1.0
     
     private var points: [HourlyHistoryPoint] {
         if service.historyPoints.isEmpty {
@@ -22,8 +23,8 @@ public struct TimelineChartView: View {
     
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header con títulos y leyenda
-            HStack {
+            // Header con títulos, Zoom (+ / -) y leyenda
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(loc("timeline_title"))
                         .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -34,7 +35,72 @@ public struct TimelineChartView: View {
                 }
                 Spacer()
                 
-                HStack(spacing: 14) {
+                // Controles de Zoom (+ / -)
+                HStack(spacing: 5) {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            zoomLevel = max(0.5, zoomLevel - 0.25)
+                        }
+                    }) {
+                        Image(systemName: "minus.magnifyingglass")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(zoomLevel > 0.5 ? Color.liquidCyan : Color.white.opacity(0.25))
+                            .frame(width: 24, height: 22)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(zoomLevel <= 0.5)
+                    .help(loc("zoom_out"))
+                    
+                    Text("\(Int(round(zoomLevel * 100)))%")
+                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .frame(width: 38)
+                    
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            zoomLevel = min(3.0, zoomLevel + 0.25)
+                        }
+                    }) {
+                        Image(systemName: "plus.magnifyingglass")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(zoomLevel < 3.0 ? Color.liquidCyan : Color.white.opacity(0.25))
+                            .frame(width: 24, height: 22)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(zoomLevel >= 3.0)
+                    .help(loc("zoom_in"))
+                    
+                    if zoomLevel != 1.0 {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                zoomLevel = 1.0
+                            }
+                        }) {
+                            Text(loc("zoom_reset"))
+                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                .foregroundColor(Color.liquidAmber)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Color.liquidAmber.opacity(0.14))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3.5)
+                .background(Color(hex: "080313").opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9)
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                )
+                
+                HStack(spacing: 12) {
                     HStack(spacing: 6) {
                         Circle().fill(Color.liquidCyan).frame(width: 8, height: 8)
                         Text(loc("on_battery")).font(.system(size: 11, weight: .medium)).foregroundColor(Color.textSecondary)
@@ -53,7 +119,8 @@ public struct TimelineChartView: View {
                     let chartHeight: CGFloat = 160.0
                     let yAxisWidth: CGFloat = 38.0
                     let availableScrollWidth = max(100.0, w - yAxisWidth)
-                    let pointSpacing: CGFloat = 34.0
+                    let baseSpacing: CGFloat = 34.0
+                    let pointSpacing: CGFloat = max(14.0, baseSpacing * CGFloat(zoomLevel))
                     let startPadding: CGFloat = 20.0
                     let totalContentWidth = max(availableScrollWidth, startPadding + CGFloat(points.count) * pointSpacing + 40.0)
                     let overflows = totalContentWidth > availableScrollWidth
@@ -1095,6 +1162,240 @@ struct IntervalHorizontalSliderBar: View {
     }
 }
 
+// MARK: - Custom Glassmorphic Calendar Picker (Estilo Neón Cyberpunk Dark)
+
+public struct CustomGlassCalendarView: View {
+    let selectedDate: Date
+    let availableDates: [Date]
+    let onSelectDate: (Date) -> Void
+    
+    @ObservedObject private var locManager = LocalizationManager.shared
+    @State private var currentMonth: Date
+    
+    public init(selectedDate: Date, availableDates: [Date], onSelectDate: @escaping (Date) -> Void) {
+        self.selectedDate = selectedDate
+        self.availableDates = availableDates
+        self.onSelectDate = onSelectDate
+        _currentMonth = State(initialValue: selectedDate)
+    }
+    
+    private let calendar = Calendar.current
+    
+    private var monthYearFormatter: DateFormatter {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: locManager.currentLanguage.rawValue)
+        df.dateFormat = "MMMM yyyy"
+        return df
+    }
+    
+    private var daysInMonth: [Date] {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: currentMonth) else { return [] }
+        var dates: [Date] = []
+        var d = monthInterval.start
+        while d < monthInterval.end {
+            dates.append(d)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: d) else { break }
+            d = next
+        }
+        return dates
+    }
+    
+    private var leadingBlankCount: Int {
+        guard let firstDay = daysInMonth.first else { return 0 }
+        let weekday = calendar.component(.weekday, from: firstDay)
+        return (weekday + 5) % 7
+    }
+    
+    private var weekdaySymbols: [String] {
+        let raw = calendar.veryShortStandaloneWeekdaySymbols
+        if raw.count == 7 {
+            return Array(raw[1..<7]) + [raw[0]]
+        }
+        return ["L", "M", "M", "J", "V", "S", "D"]
+    }
+    
+    public var body: some View {
+        VStack(spacing: 12) {
+            // Quick Action Pills ("Hoy", "Ayer")
+            HStack(spacing: 8) {
+                Button(action: {
+                    let today = calendar.startOfDay(for: Date())
+                    onSelectDate(today)
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 9, weight: .bold))
+                        Text(loc("today_label"))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(calendar.isDateInToday(selectedDate) ? Color.white : Color.liquidCyan)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        calendar.isDateInToday(selectedDate) ?
+                        Color.liquidCyan.opacity(0.3) : Color.white.opacity(0.06)
+                    )
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().strokeBorder(calendar.isDateInToday(selectedDate) ? Color.liquidCyan : Color.white.opacity(0.12), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                
+                if let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) {
+                    let isYest = calendar.isDate(selectedDate, inSameDayAs: yesterday)
+                    Button(action: {
+                        onSelectDate(yesterday)
+                    }) {
+                        Text(loc("yesterday_label"))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(isYest ? Color.white : Color.textSecondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                isYest ? Color.liquidPurple.opacity(0.35) : Color.white.opacity(0.06)
+                            )
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().strokeBorder(isYest ? Color.liquidPurple : Color.white.opacity(0.12), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                Spacer()
+            }
+            
+            Divider().background(Color.white.opacity(0.1))
+            
+            // Month Header with navigation chevrons
+            HStack {
+                Text(monthYearFormatter.string(from: currentMonth).capitalized)
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Button(action: {
+                        if let prev = calendar.date(byAdding: .month, value: -1, to: currentMonth) {
+                            currentMonth = prev
+                        }
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 22, height: 22)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        if let next = calendar.date(byAdding: .month, value: 1, to: currentMonth) {
+                            currentMonth = next
+                        }
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 22, height: 22)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            
+            // Weekday labels (Lu, Ma, Mi, Ju, Vi, Sá, Do)
+            HStack(spacing: 0) {
+                ForEach(weekdaySymbols, id: \.self) { sym in
+                    Text(sym)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color.textMuted)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Month days grid (7 columns)
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+            LazyVGrid(columns: columns, spacing: 6) {
+                // Leading blanks
+                ForEach(0..<leadingBlankCount, id: \.self) { _ in
+                    Color.clear.frame(height: 30)
+                }
+                
+                // Days
+                ForEach(daysInMonth, id: \.self) { dayDate in
+                    let isSelected = calendar.isDate(dayDate, inSameDayAs: selectedDate)
+                    let isToday = calendar.isDateInToday(dayDate)
+                    let hasData = availableDates.contains(where: { calendar.isDate($0, inSameDayAs: dayDate) })
+                    let dayNum = calendar.component(.day, from: dayDate)
+                    
+                    Button(action: {
+                        if hasData {
+                            onSelectDate(dayDate)
+                        }
+                    }) {
+                        ZStack(alignment: .bottom) {
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .fill(
+                                    isSelected ?
+                                    AnyShapeStyle(LinearGradient(colors: [Color.liquidPink, Color.liquidPurple], startPoint: .topLeading, endPoint: .bottomTrailing)) :
+                                    (hasData ? AnyShapeStyle(Color.white.opacity(0.08)) : AnyShapeStyle(Color.clear))
+                                )
+                                .frame(height: 30)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .strokeBorder(
+                                            isSelected ? Color.white.opacity(0.8) :
+                                            (isToday ? Color.liquidCyan : (hasData ? Color.white.opacity(0.12) : Color.clear)),
+                                            lineWidth: isToday ? 1.5 : (isSelected ? 1.0 : 0.6)
+                                        )
+                                )
+                                .shadow(color: isSelected ? Color.liquidPink.opacity(0.6) : Color.clear, radius: 4)
+                            
+                            VStack(spacing: 1) {
+                                Text("\(dayNum)")
+                                    .font(.system(size: 11, weight: isSelected ? .heavy : (hasData ? .bold : .regular), design: .rounded))
+                                    .foregroundColor(
+                                        isSelected ? .white :
+                                        (hasData ? (isToday ? Color.liquidCyan : Color.white) : Color.white.opacity(0.20))
+                                    )
+                                
+                                if hasData && !isSelected {
+                                    Circle()
+                                        .fill(Color.liquidCyan)
+                                        .frame(width: 3.5, height: 3.5)
+                                } else {
+                                    Color.clear.frame(height: 3.5)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!hasData)
+                }
+            }
+            
+            Divider().background(Color.white.opacity(0.1))
+            
+            // Footer note
+            HStack(spacing: 5) {
+                Circle().fill(Color.liquidCyan).frame(width: 5, height: 5)
+                Text(loc("calendar_data_available"))
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundColor(Color.textSecondary)
+                Spacer()
+            }
+        }
+        .padding(14)
+        .frame(width: 275)
+        .background(Color(hex: "170A2C"))
+    }
+}
+
 // MARK: - UPDATED: Consumo Histórico con Calendario y Selector de Intervalo (30m, 1h, Todo el Día)
 
 public struct TodayBlocksView: View {
@@ -1103,6 +1404,7 @@ public struct TodayBlocksView: View {
     @State private var selectedBlockId: String? = nil
     @State private var hoveredShare: AppBlockShare? = nil
     @State private var sliderFraction: Double = 1.0
+    @State private var showCalendarPicker: Bool = false
     
     private var blocks: [TodayHalfHourBlock] {
         service.todayHalfHourBlocks
@@ -1206,44 +1508,51 @@ public struct TodayBlocksView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             
-            // Calendar / Date Bar
+            // Calendar / Date Bar con Selector Personalizado Dark Neón
             HStack(spacing: 12) {
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .foregroundColor(Color.liquidCyan)
-                        .font(.system(size: 12))
+                HStack(spacing: 8) {
                     Text(loc("day_analyzed"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(Color.textSecondary)
                     
-                    Menu {
-                        ForEach(service.availableDates, id: \.self) { d in
-                            Button(action: {
-                                service.changeSelectedDate(d)
-                            }) {
-                                HStack {
-                                    Text(Calendar.current.isDateInToday(d) ? "\(loc("today_label")) (\(dayFormatter.string(from: d)))" : dayFormatter.string(from: d))
-                                    if Calendar.current.isDate(d, inSameDayAs: service.selectedDate) {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 5) {
+                    Button(action: {
+                        showCalendarPicker.toggle()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar")
+                                .foregroundColor(Color.liquidCyan)
+                                .font(.system(size: 12, weight: .bold))
+                            
                             Text(Calendar.current.isDateInToday(service.selectedDate) ? "\(loc("today_label")) (\(dayFormatter.string(from: service.selectedDate)))" : dayFormatter.string(from: service.selectedDate))
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
+                            
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 9))
+                                .font(.system(size: 8.5, weight: .bold))
                                 .foregroundColor(Color.textSecondary)
+                                .rotationEffect(.degrees(showCalendarPicker ? 180 : 0))
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
                         .background(Color.white.opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(showCalendarPicker ? Color.liquidCyan : Color.white.opacity(0.14), lineWidth: 1)
+                        )
                     }
                     .buttonStyle(.plain)
+                    .popover(isPresented: $showCalendarPicker, arrowEdge: .bottom) {
+                        CustomGlassCalendarView(
+                            selectedDate: service.selectedDate,
+                            availableDates: service.availableDates,
+                            onSelectDate: { pickedDate in
+                                service.changeSelectedDate(pickedDate)
+                                showCalendarPicker = false
+                            }
+                        )
+                        .preferredColorScheme(.dark)
+                    }
                 }
                 
                 Spacer()

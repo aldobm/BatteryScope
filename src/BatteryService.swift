@@ -308,8 +308,27 @@ public class BatteryService: ObservableObject {
     private let queue = DispatchQueue(label: "com.battery.analyzer.queue", qos: .userInitiated)
     
     private init() {
+        let initialSnap = readIOPowerData()
+        self.snapshot = initialSnap
+        self.lastScanTime = Date()
+        computeInitialIntervalBlocks()
         refreshAll()
         startTimers()
+    }
+    
+    private func computeInitialIntervalBlocks() {
+        let now = Date()
+        let currentCharge = max(10, snapshot.chargePercent > 0 ? snapshot.chargePercent : 80)
+        let isAC = snapshot.isExternalConnected
+        
+        if historyPoints.isEmpty {
+            historyPoints = [
+                HourlyHistoryPoint(timestamp: now.addingTimeInterval(-7200), batteryPercent: min(100, currentCharge + 2), isCharging: isAC, topAppName: isAC ? "Enchufe CA Conectado" : "Batería en Uso", topAppPower: isAC ? 0.0 : 8.5, notes: "Historial"),
+                HourlyHistoryPoint(timestamp: now.addingTimeInterval(-3600), batteryPercent: min(100, currentCharge + 1), isCharging: isAC, topAppName: isAC ? "Enchufe CA Conectado" : "Batería en Uso", topAppPower: isAC ? 0.0 : 8.5, notes: "Historial"),
+                HourlyHistoryPoint(timestamp: now, batteryPercent: currentCharge, isCharging: isAC, topAppName: isAC ? "Enchufe CA Conectado" : "Batería en Uso", topAppPower: isAC ? 0.0 : 8.5, notes: "Actual")
+            ]
+        }
+        computeIntervalBlocks(currentApps: self.topApps, date: self.selectedDate, mode: self.intervalMode)
     }
     
     public func startTimers() {
@@ -327,9 +346,8 @@ public class BatteryService: ObservableObject {
     
     public func refreshAll() {
         refreshBatteryHardware()
-        loadSleepIntervals()
         refreshTopApps()
-        loadPmsetHistory()
+        loadPmsetHistoryAndSleep()
     }
     
     public func refreshBatteryHardware() {
@@ -482,6 +500,11 @@ public class BatteryService: ObservableObject {
     
     // MARK: - Parse Sleep & Lid Closed Ranges from pmset
     private func loadSleepIntervals() {
+        loadPmsetHistoryAndSleep()
+    }
+    
+    // MARK: - Unified Fast pmset Reader (Sleep intervals + Battery History in ONE pass)
+    public func loadPmsetHistoryAndSleep() {
         queue.async { [weak self] in
             guard let self = self else { return }
             let task = Process()
@@ -501,11 +524,69 @@ public class BatteryService: ObservableObject {
                 dayDf.dateFormat = "yyyy-MM-dd"
                 let now = Date()
                 
+                // 1. Parse Sleep & Assertions
                 var intervals: [SleepInterval] = []
                 var assertEvents: [SleepAssertionEvent] = []
                 var currentSleepStart: Date? = nil
                 var currentReason = ""
                 var foundDates: Set<String> = []
+                
+                // 2. Parse Battery & AC History Points
+                var results: [HourlyHistoryPoint] = []
+                let regex = try? NSRegularExpression(pattern: #"(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}).*?Using\s*(Batt|AC)\s*\(Charge:\s*(\d+)"#)
+                let nsOutput = output as NSString
+                let matches = regex?.matches(in: output, range: NSRange(location: 0, length: nsOutput.length)) ?? []
+                
+                for match in matches.suffix(600) {
+                    if match.numberOfRanges >= 4 {
+                        let dateStr = nsOutput.substring(with: match.range(at: 1))
+                        let source = nsOutput.substring(with: match.range(at: 2))
+                        let chargeStr = nsOutput.substring(with: match.range(at: 3))
+                        
+                        if let date = df.date(from: dateStr), let charge = Int(chargeStr) {
+                            if now.timeIntervalSince(date) <= 7 * 86400 {
+                                let isCharging = (source == "AC")
+                                let topAppDesc = isCharging ? "Enchufe CA Conectado" : "Batería en Uso"
+                                results.append(HourlyHistoryPoint(
+                                    timestamp: date,
+                                    batteryPercent: charge,
+                                    isCharging: isCharging,
+                                    topAppName: topAppDesc,
+                                    topAppPower: isCharging ? 0.0 : 8.5,
+                                    notes: "\(source) - \(charge)%"
+                                ))
+                            }
+                        }
+                    }
+                }
+                results.sort { $0.timestamp < $1.timestamp }
+                
+                var cleanResults: [HourlyHistoryPoint] = []
+                for pt in results {
+                    if let last = cleanResults.last {
+                        if last.timestamp == pt.timestamp {
+                            cleanResults[cleanResults.count - 1] = pt
+                            continue
+                        }
+                        let elapsed = pt.timestamp.timeIntervalSince(last.timestamp)
+                        if last.isCharging == pt.isCharging && last.batteryPercent == pt.batteryPercent && elapsed < 600 {
+                            continue
+                        }
+                    }
+                    cleanResults.append(pt)
+                }
+                
+                if let last = cleanResults.last, now.timeIntervalSince(last.timestamp) > 60 {
+                    let isAC = self.snapshot.isExternalConnected
+                    cleanResults.append(HourlyHistoryPoint(
+                        timestamp: now,
+                        batteryPercent: self.snapshot.chargePercent > 0 ? self.snapshot.chargePercent : last.batteryPercent,
+                        isCharging: isAC,
+                        topAppName: isAC ? "Enchufe CA Conectado" : "Batería en Uso",
+                        topAppPower: isAC ? 0.0 : 8.5,
+                        notes: "Actual"
+                    ))
+                }
                 
                 for line in output.components(separatedBy: "\n") {
                     guard line.count >= 19 else { continue }
@@ -527,7 +608,6 @@ public class BatteryService: ObservableObject {
                         }
                     }
                     
-                    // Parse assertion events (DarkWake processes like mDNSResponder, apsd, cloudd, AddressBookSourceSync, etc.)
                     if rest.contains("Assertions") && rest.contains("PID ") {
                         if let pidRange = rest.range(of: "PID ") {
                             let pidSub = rest[pidRange.upperBound...]
@@ -554,9 +634,10 @@ public class BatteryService: ObservableObject {
                     if !sortedDates.isEmpty {
                         self.availableDates = sortedDates
                     }
-                    if !self.historyPoints.isEmpty {
-                        self.computeIntervalBlocks(currentApps: self.topApps, date: self.selectedDate, mode: self.intervalMode)
+                    if !cleanResults.isEmpty {
+                        self.historyPoints = cleanResults
                     }
+                    self.computeIntervalBlocks(currentApps: self.topApps, date: self.selectedDate, mode: self.intervalMode)
                 }
             } catch {}
         }
@@ -1119,109 +1200,9 @@ public class BatteryService: ObservableObject {
         }
     }
     
-    // MARK: - History Reader from pmset
+    // MARK: - History Reader from pmset (Delegates to unified reader)
     public func loadPmsetHistory() {
-        queue.async { [weak self] in
-            guard let self = self else { return }
-            let points = self.parsePmsetLog()
-            DispatchQueue.main.async {
-                self.historyPoints = points
-                self.computeIntervalBlocks(currentApps: self.topApps, date: self.selectedDate, mode: self.intervalMode)
-            }
-        }
-    }
-    
-    private func parsePmsetLog() -> [HourlyHistoryPoint] {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        task.arguments = ["-g", "log"]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        do {
-            try task.run()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            task.waitUntilExit()
-            
-            guard let output = String(data: data, encoding: .utf8) else { return [] }
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            
-            var results: [HourlyHistoryPoint] = []
-            // Regex flexible que captura todos los registros pmset de batería y corriente alterna
-            let regex = try? NSRegularExpression(pattern: #"(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}).*?Using\s*(Batt|AC)\s*\(Charge:\s*(\d+)"#)
-            
-            let nsOutput = output as NSString
-            let matches = regex?.matches(in: output, range: NSRange(location: 0, length: nsOutput.length)) ?? []
-            let now = Date()
-            
-            for match in matches.suffix(600) {
-                if match.numberOfRanges >= 4 {
-                    let dateStr = nsOutput.substring(with: match.range(at: 1))
-                    let source = nsOutput.substring(with: match.range(at: 2))
-                    let chargeStr = nsOutput.substring(with: match.range(at: 3))
-                    
-                    if let date = df.date(from: dateStr), let charge = Int(chargeStr) {
-                        if now.timeIntervalSince(date) <= 7 * 86400 {
-                            let isCharging = (source == "AC")
-                            let topAppDesc = isCharging ? "Enchufe CA Conectado" : "Batería en Uso"
-                            results.append(HourlyHistoryPoint(
-                                timestamp: date,
-                                batteryPercent: charge,
-                                isCharging: isCharging,
-                                topAppName: topAppDesc,
-                                topAppPower: isCharging ? 0.0 : 8.5,
-                                notes: "\(source) - \(charge)%"
-                            ))
-                        }
-                    }
-                }
-            }
-            results.sort { $0.timestamp < $1.timestamp }
-            
-            // Deduplicación limpia: eliminar timestamps idénticos y ruido repetitivo de segundo a segundo
-            var cleanResults: [HourlyHistoryPoint] = []
-            for pt in results {
-                if let last = cleanResults.last {
-                    if last.timestamp == pt.timestamp {
-                        cleanResults[cleanResults.count - 1] = pt
-                        continue
-                    }
-                    let elapsed = pt.timestamp.timeIntervalSince(last.timestamp)
-                    // Si el estado de carga y porcentaje no cambiaron y pasaron menos de 10 minutos, omitir puntos repetidos
-                    if last.isCharging == pt.isCharging && last.batteryPercent == pt.batteryPercent && elapsed < 600 {
-                        continue
-                    }
-                }
-                cleanResults.append(pt)
-            }
-            
-            // Garantizar que el estado en vivo actual esté presente al final
-            if let last = cleanResults.last, now.timeIntervalSince(last.timestamp) > 60 {
-                let isAC = self.snapshot.isExternalConnected
-                cleanResults.append(HourlyHistoryPoint(
-                    timestamp: now,
-                    batteryPercent: self.snapshot.chargePercent > 0 ? self.snapshot.chargePercent : last.batteryPercent,
-                    isCharging: isAC,
-                    topAppName: isAC ? "Enchufe CA Conectado" : "Batería en Uso",
-                    topAppPower: isAC ? 0.0 : 8.5,
-                    notes: "Actual"
-                ))
-            }
-            
-            if cleanResults.isEmpty {
-                cleanResults.append(HourlyHistoryPoint(
-                    timestamp: Date(),
-                    batteryPercent: self.snapshot.chargePercent > 0 ? self.snapshot.chargePercent : 80,
-                    isCharging: self.snapshot.isExternalConnected,
-                    topAppName: "Cargador USB-C",
-                    topAppPower: 0,
-                    notes: "Actual"
-                ))
-            }
-            return cleanResults
-        } catch {
-            return []
-        }
+        loadPmsetHistoryAndSleep()
     }
     
     public func terminateProcess(pid: Int32) {
