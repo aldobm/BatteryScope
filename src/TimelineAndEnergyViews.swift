@@ -724,8 +724,8 @@ struct BlockBarColumnView: View {
         // Espacio vertical reservado en la parte superior del panel para:
         // 1. Etiqueta de consumo del intervalo (arriba en el panel, e.g. 5%, 1%, 2%, 0%)
         // 2. Insignia de nivel de batería (encima de donde alcanza la barra, e.g. ⚡ 100%)
-        // De esta forma, incluso al 100% de batería NUNCA se enciman ni desbordan verticalmente.
-        let topReservedSpace: CGFloat = 46.0
+        // Con 52 pt, incluso al 100% de batería queda un margen limpio de 13 pt y NUNCA se enciman ni desbordan.
+        let topReservedSpace: CGFloat = 52.0
         let maxBarHeight = max(20.0, chartAreaHeight - topReservedSpace)
         
         // El tamaño de la barra es estrictamente proporcional al nivel real de batería (0% - 100%)
@@ -1026,6 +1026,37 @@ public struct TodayBlocksView: View {
                 }
                 .buttonStyle(.plain)
                 .help(service.isIntervalAnalysisPaused ? loc("resume_live_help") : loc("pause_live_help"))
+                
+                // BOTÓN SIMULACIÓN 100%
+                Button(action: {
+                    withAnimation(.spring(response: 0.22)) {
+                        service.toggleSimulate100Percent()
+                    }
+                }) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "bolt.badge.checkmark.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(service.isSimulating100 ? "100% Activo" : "Simular 100%")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(service.isSimulating100 ? Color.liquidEmerald : Color.white.opacity(0.85))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        service.isSimulating100 ?
+                        Color.liquidEmerald.opacity(0.22) :
+                        Color.white.opacity(0.08)
+                    )
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().strokeBorder(
+                            service.isSimulating100 ? Color.liquidEmerald.opacity(0.7) : Color.white.opacity(0.18),
+                            lineWidth: 1
+                        )
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("Simular barras de batería al 100% para verificar los límites y espaciados verticales del gráfico")
                 
                 // Interval Switcher (30 Min, 1 Hora, Todo el Día)
                 HStack(spacing: 4) {

@@ -286,6 +286,13 @@ public class BatteryService: ObservableObject {
     @Published public var availableDates: [Date] = [Date()]
     @Published public var intervalMode: ConsumptionIntervalMode = .halfHour
     @Published public var isIntervalAnalysisPaused: Bool = false
+    @Published public var isSimulating100: Bool = true
+    
+    public func toggleSimulate100Percent() {
+        self.isSimulating100.toggle()
+        self.historicalBlocksCache.removeAll()
+        self.computeIntervalBlocks(currentApps: self.topApps, date: self.selectedDate, mode: self.intervalMode)
+    }
     
     // Paused PIDs tracking & Detailed Pause Registry (SIGSTOP / SIGCONT)
     @Published public var pausedPids: Set<Int32> = []
@@ -1112,6 +1119,38 @@ public class BatteryService: ObservableObject {
             blocks.append(newBlock)
             
             blockStart = blockEnd
+        }
+        
+        if self.isSimulating100 && blocks.count >= 4 {
+            let count = blocks.count
+            // Demostración escalonada que culmina en 100%: 85% -> 92% -> 97% -> 100%
+            let simLevels = [85, 92, 97, 100]
+            let simConsumptions = ["+5%", "+7%", "+5%", "0%"]
+            for i in 0..<4 {
+                let targetIdx = count - 4 + i
+                let old = blocks[targetIdx]
+                blocks[targetIdx] = TodayHalfHourBlock(
+                    startTime: old.startTime,
+                    endTime: old.endTime,
+                    label: old.label,
+                    shortHour: old.shortHour,
+                    batteryDrainPercent: old.batteryDrainPercent,
+                    rechargePercent: 5.0,
+                    isCharging: true,
+                    isSleeping: false,
+                    sleepStateReason: old.sleepStateReason,
+                    totalMWh: old.totalMWh,
+                    topApps: old.topApps,
+                    topEnergyLabel: "\(simLevels[i])% ⚡️",
+                    condition: .lidOpenAC,
+                    numberText: "\(simLevels[i])%",
+                    consumptionText: simConsumptions[i],
+                    batteryLevel: simLevels[i],
+                    hasMoon: false,
+                    hasBolt: true,
+                    hasBattery: false
+                )
+            }
         }
         
         if self.todayHalfHourBlocks != blocks {
