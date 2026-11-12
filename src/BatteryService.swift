@@ -296,6 +296,8 @@ public class BatteryService: ObservableObject {
     
     private var hasComputedBlocksOnce: Bool = false
     private var sleepIntervalsCache: [SleepInterval] = []
+    // Cache inmutable para bloques de intervalos pasados (el pasado no se mueve ni se recalcula)
+    private var historicalBlocksCache: [String: TodayHalfHourBlock] = [:]
     
     private var processHistoryMap: [String: [ProcessTimePoint]] = [:]
     private var processAccumulatedMWh: [String: Double] = [:]
@@ -772,9 +774,6 @@ public class BatteryService: ObservableObject {
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm"
         
-        let topSorted = currentApps.sorted { $0.instantWatts > $1.instantWatts }
-        let totalWatts = max(1.0, topSorted.map { $0.instantWatts }.reduce(0, +))
-        
         let stepSeconds: TimeInterval
         switch mode {
         case .halfHour: stepSeconds = 1800
@@ -794,11 +793,24 @@ public class BatteryService: ObservableObject {
         blockStart = calendar.date(bySetting: .minute, value: roundedMin, of: blockStart) ?? blockStart
         blockStart = calendar.date(bySetting: .second, value: 0, of: blockStart) ?? blockStart
         
+        let now = Date()
+        let stableApps = currentApps.sorted { $0.appName < $1.appName }
+        
         while blockStart < maxTime {
             let blockEnd = min(maxTime, blockStart.addingTimeInterval(stepSeconds))
             let startStr = timeFormatter.string(from: blockStart)
             let endStr = timeFormatter.string(from: blockEnd)
             let blockDuration = max(1.0, blockEnd.timeIntervalSince(blockStart))
+            
+            let isPastBlock = blockEnd <= now.addingTimeInterval(-120) // El bloque ya concluyó en el pasado
+            let cacheKey = "\(calendar.startOfDay(for: date).timeIntervalSince1970)_\(mode.rawValue)_\(blockStart.timeIntervalSince1970)"
+            
+            // Si es un bloque del pasado y ya fue computado, lo reutilizamos tal cual (inmutable y 100% estático)
+            if isPastBlock, let cached = historicalBlocksCache[cacheKey] {
+                blocks.append(cached)
+                blockStart = blockEnd
+                continue
+            }
             
             // 1. Precise Sleep Calculation: Only dominant sleep if >= 60% of interval was sleeping
             var sleepSecondsInBlock: TimeInterval = 0
@@ -1032,17 +1044,17 @@ public class BatteryService: ObservableObject {
                 }
             } else {
                 // Generate differentiated, realistic app distributions per block
-                // Rather than identical copy-paste stamps
+                // Distribución determinista de apps basada en el intervalo
                 let blockHourComponent = calendar.component(.hour, from: blockStart)
                 let blockMinuteComponent = calendar.component(.minute, from: blockStart)
                 let pseudoSeed = (blockHourComponent * 7 + blockMinuteComponent * 3) % 11
                 
                 var allocatedPct = 0.0
-                let candidateApps = topSorted.prefix(4)
+                let candidateApps = stableApps.isEmpty ? currentApps : Array(stableApps.prefix(4))
+                let candidateWatts = max(1.0, candidateApps.map { $0.instantWatts }.reduce(0, +))
                 
                 for (appIndex, app) in candidateApps.enumerated() {
-                    // Differentiate app weights realistically based on time & context
-                    let baseShare = (app.instantWatts / totalWatts) * 100.0
+                    let baseShare = max(10.0, (app.instantWatts / candidateWatts) * 100.0)
                     let shift = Double((pseudoSeed + appIndex * 5) % 15) - 7.0
                     let adjustedShare = max(8.0, min(65.0, round(baseShare + shift)))
                     
@@ -1072,7 +1084,7 @@ public class BatteryService: ObservableObject {
                 }
             }
             
-            blocks.append(TodayHalfHourBlock(
+            let newBlock = TodayHalfHourBlock(
                 startTime: blockStart,
                 endTime: blockEnd,
                 label: "\(startStr) - \(endStr)",
@@ -1092,12 +1104,19 @@ public class BatteryService: ObservableObject {
                 hasMoon: hasMoon,
                 hasBolt: hasBolt,
                 hasBattery: hasBattery
-            ))
+            )
+            
+            if isPastBlock {
+                historicalBlocksCache[cacheKey] = newBlock
+            }
+            blocks.append(newBlock)
             
             blockStart = blockEnd
         }
         
-        self.todayHalfHourBlocks = blocks
+        if self.todayHalfHourBlocks != blocks {
+            self.todayHalfHourBlocks = blocks
+        }
     }
     
     // MARK: - History Reader from pmset
