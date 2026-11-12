@@ -47,102 +47,111 @@ public struct TimelineChartView: View {
             }
             
             // Área de Gráfico con Desplazamiento Horizontal y Slider
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 GeometryReader { geo in
                     let w = geo.size.width
-                    let pointSpacing: CGFloat = 28.0
-                    let leftMargin: CGFloat = 46.0
-                    let totalContentWidth = max(w, leftMargin + CGFloat(points.count) * pointSpacing + 30.0)
-                    let chartHeight: CGFloat = 165.0
-                    let overflows = totalContentWidth > w
+                    let chartHeight: CGFloat = 160.0
+                    let yAxisWidth: CGFloat = 38.0
+                    let availableScrollWidth = max(100.0, w - yAxisWidth)
+                    let pointSpacing: CGFloat = 34.0
+                    let startPadding: CGFloat = 20.0
+                    let totalContentWidth = max(availableScrollWidth, startPadding + CGFloat(points.count) * pointSpacing + 40.0)
+                    let overflows = totalContentWidth > availableScrollWidth
                     
                     VStack(spacing: 10) {
-                        ScrollViewReader { scrollProxy in
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                ZStack(alignment: .topLeading) {
-                                    // Líneas guía horizontales (100%, 75%, 50%, 25%) que cubren todo el ancho desplazable
-                                    VStack(spacing: 0) {
-                                        ForEach([100, 75, 50, 25], id: \.self) { pct in
-                                            HStack(spacing: 6) {
-                                                Text("\(pct)%")
-                                                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                                                    .foregroundColor(Color.textMuted.opacity(0.75))
-                                                    .frame(width: 34, alignment: .trailing)
+                        HStack(alignment: .top, spacing: 0) {
+                            // 1. Eje Y fijo a la izquierda (100%, 75%, 50%, 25%, 0%) - siempre visible
+                            VStack(alignment: .trailing, spacing: 0) {
+                                ForEach([100, 75, 50, 25, 0], id: \.self) { pct in
+                                    Text("\(pct)%")
+                                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                        .foregroundColor(Color.textMuted.opacity(0.8))
+                                        .frame(width: yAxisWidth - 6, alignment: .trailing)
+                                    if pct > 0 { Spacer() }
+                                }
+                            }
+                            .frame(width: yAxisWidth, height: chartHeight)
+                            
+                            // 2. Gráfico interactivo desplazable con ScrollViewReader
+                            ScrollViewReader { scrollProxy in
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    ZStack(alignment: .topLeading) {
+                                        // Líneas guía horizontales que cubren todo el ancho de datos
+                                        VStack(spacing: 0) {
+                                            ForEach([100, 75, 50, 25, 0], id: \.self) { pct in
                                                 Rectangle()
                                                     .fill(Color.white.opacity(0.06))
                                                     .frame(height: 1)
-                                            }
-                                            if pct > 25 { Spacer() }
-                                        }
-                                    }
-                                    .frame(width: totalContentWidth, height: chartHeight)
-                                    
-                                    if points.count >= 2 {
-                                        // Relleno degradado fluido bajo la curva
-                                        Path { path in
-                                            for (i, pt) in points.enumerated() {
-                                                let x = leftMargin + CGFloat(i) * pointSpacing
-                                                let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
-                                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                                                else { path.addLine(to: CGPoint(x: x, y: y)) }
-                                            }
-                                            if let lastIdx = points.indices.last {
-                                                let lastX = leftMargin + CGFloat(lastIdx) * pointSpacing
-                                                path.addLine(to: CGPoint(x: lastX, y: chartHeight))
-                                                path.addLine(to: CGPoint(x: leftMargin, y: chartHeight))
-                                                path.closeSubpath()
+                                                if pct > 0 { Spacer() }
                                             }
                                         }
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    Color.liquidCyan.opacity(0.30),
-                                                    Color.liquidPurple.opacity(0.08),
-                                                    Color.clear
-                                                ],
-                                                startPoint: .top,
-                                                endPoint: .bottom
+                                        .frame(width: totalContentWidth, height: chartHeight)
+                                        
+                                        if points.count >= 2 {
+                                            // Relleno degradado fluido bajo la curva
+                                            Path { path in
+                                                for (i, pt) in points.enumerated() {
+                                                    let x = startPadding + CGFloat(i) * pointSpacing
+                                                    let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
+                                                    if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                                                    else { path.addLine(to: CGPoint(x: x, y: y)) }
+                                                }
+                                                if let lastIdx = points.indices.last {
+                                                    let lastX = startPadding + CGFloat(lastIdx) * pointSpacing
+                                                    path.addLine(to: CGPoint(x: lastX, y: chartHeight))
+                                                    path.addLine(to: CGPoint(x: startPadding, y: chartHeight))
+                                                    path.closeSubpath()
+                                                }
+                                            }
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [
+                                                        Color.liquidCyan.opacity(0.28),
+                                                        Color.liquidPurple.opacity(0.07),
+                                                        Color.clear
+                                                    ],
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                )
                                             )
-                                        )
-                                        
-                                        // Trazo curvo continuo con degradado neón
-                                        Path { path in
-                                            for (i, pt) in points.enumerated() {
-                                                let x = leftMargin + CGFloat(i) * pointSpacing
-                                                let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
-                                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                                                else { path.addLine(to: CGPoint(x: x, y: y)) }
-                                            }
-                                        }
-                                        .stroke(
-                                            LinearGradient(
-                                                colors: [Color.liquidCyan, Color.liquidEmerald, Color.liquidAmber],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            ),
-                                            style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round)
-                                        )
-                                        .shadow(color: Color.liquidCyan.opacity(0.4), radius: 6)
-                                        
-                                        // Nodos discretos con separación holgada
-                                        ForEach(Array(points.enumerated()), id: \.element.id) { (i, pt) in
-                                            let x = leftMargin + CGFloat(i) * pointSpacing
-                                            let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
-                                            let isSelected = (hoveredPoint?.id == pt.id)
                                             
-                                            Circle()
-                                                .fill(pt.isCharging ? Color.liquidAmber : Color.liquidCyan)
-                                                .frame(width: isSelected ? 10 : 6.5, height: isSelected ? 10 : 6.5)
-                                                .overlay(Circle().stroke(Color.white, lineWidth: isSelected ? 2 : 1.2))
-                                                .shadow(color: (pt.isCharging ? Color.liquidAmber : Color.liquidCyan).opacity(0.7), radius: isSelected ? 6 : 2)
-                                                .position(x: x, y: y)
-                                                .id(pt.id)
-                                        }
-                                        
-                                        // Línea vertical interactiva y punto pulsante al seleccionar
-                                        if let selected = hoveredPoint ?? points.last {
-                                            if let idx = points.firstIndex(where: { $0.id == selected.id }) {
-                                                let x = leftMargin + CGFloat(idx) * pointSpacing
+                                            // Trazo continuo de neón
+                                            Path { path in
+                                                for (i, pt) in points.enumerated() {
+                                                    let x = startPadding + CGFloat(i) * pointSpacing
+                                                    let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
+                                                    if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                                                    else { path.addLine(to: CGPoint(x: x, y: y)) }
+                                                }
+                                            }
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [Color.liquidCyan, Color.liquidEmerald, Color.liquidAmber],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                ),
+                                                style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round)
+                                            )
+                                            .shadow(color: Color.liquidCyan.opacity(0.4), radius: 5)
+                                            
+                                            // Nodos discretos
+                                            ForEach(Array(points.enumerated()), id: \.element.id) { (i, pt) in
+                                                let x = startPadding + CGFloat(i) * pointSpacing
+                                                let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
+                                                let isSelected = (hoveredPoint?.id == pt.id)
+                                                
+                                                Circle()
+                                                    .fill(pt.isCharging ? Color.liquidAmber : Color.liquidCyan)
+                                                    .frame(width: isSelected ? 10 : 6.5, height: isSelected ? 10 : 6.5)
+                                                    .overlay(Circle().stroke(Color.white, lineWidth: isSelected ? 2 : 1.2))
+                                                    .shadow(color: (pt.isCharging ? Color.liquidAmber : Color.liquidCyan).opacity(0.7), radius: isSelected ? 6 : 2)
+                                                    .position(x: x, y: y)
+                                            }
+                                            
+                                            // Línea vertical interactiva y punto pulsante al seleccionar
+                                            if let selected = hoveredPoint ?? points.last,
+                                               let idx = points.firstIndex(where: { $0.id == selected.id }) {
+                                                let x = startPadding + CGFloat(idx) * pointSpacing
                                                 let y = chartHeight - (CGFloat(selected.batteryPercent) / 100.0 * chartHeight)
                                                 
                                                 Rectangle()
@@ -160,78 +169,91 @@ public struct TimelineChartView: View {
                                                     .fill(Color.liquidPink)
                                                     .frame(width: 11, height: 11)
                                                     .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                                                    .shadow(color: Color.liquidPink.opacity(0.9), radius: 7)
+                                                    .shadow(color: Color.liquidPink.opacity(0.9), radius: 6)
                                                     .position(x: x, y: y)
                                             }
                                         }
-                                    }
-                                    
-                                    // Eje X: Horas y fechas a lo largo de la línea de tiempo
-                                    HStack(spacing: 0) {
-                                        ForEach(Array(points.enumerated()), id: \.element.id) { (i, pt) in
-                                            let showLabel = (i % 3 == 0 || i == points.count - 1)
-                                            Group {
-                                                if showLabel {
-                                                    VStack(spacing: 1) {
-                                                        Text(pt.timestamp.formatted(date: .omitted, time: .shortened))
-                                                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                                            .foregroundColor(Color.textSecondary)
-                                                        Text(pt.timestamp.formatted(date: .numeric, time: .omitted))
-                                                            .font(.system(size: 7.5, weight: .medium))
-                                                            .foregroundColor(Color.textMuted.opacity(0.7))
+                                        
+                                        // Eje X: Horas y fechas legibles sin solapamiento
+                                        HStack(spacing: 0) {
+                                            Color.clear.frame(width: max(0, startPadding - (pointSpacing / 2)), height: 32)
+                                            ForEach(Array(points.enumerated()), id: \.element.id) { (i, pt) in
+                                                let showLabel = (i % 3 == 0 || i == points.count - 1)
+                                                ZStack {
+                                                    if showLabel {
+                                                        VStack(spacing: 1.5) {
+                                                            Text(pt.timestamp.formatted(date: .omitted, time: .shortened))
+                                                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                                                .foregroundColor(Color.textSecondary)
+                                                                .lineLimit(1)
+                                                            Text(pt.timestamp.formatted(.dateTime.day().month(.abbreviated)))
+                                                                .font(.system(size: 7.5, weight: .medium))
+                                                                .foregroundColor(Color.textMuted.opacity(0.85))
+                                                                .lineLimit(1)
+                                                        }
+                                                        .fixedSize()
                                                     }
-                                                } else {
-                                                    Color.clear
                                                 }
+                                                .frame(width: pointSpacing, height: 32)
                                             }
-                                            .frame(width: pointSpacing)
+                                        }
+                                        .offset(y: chartHeight + 6)
+                                        
+                                        // Columnas de anclaje táctiles e interactivas para ScrollViewReader
+                                        HStack(spacing: 0) {
+                                            Color.clear.frame(width: max(0, startPadding - (pointSpacing / 2)), height: chartHeight + 40)
+                                            ForEach(Array(points.enumerated()), id: \.element.id) { (i, pt) in
+                                                Color.clear
+                                                    .frame(width: pointSpacing, height: chartHeight + 40)
+                                                    .contentShape(Rectangle())
+                                                    .id("timeline_anchor_\(i)")
+                                                    .onTapGesture {
+                                                        hoveredPoint = pt
+                                                        if points.count > 1 {
+                                                            sliderFraction = Double(i) / Double(points.count - 1)
+                                                        }
+                                                    }
+                                            }
                                         }
                                     }
-                                    .padding(.leading, leftMargin - (pointSpacing / 2))
-                                    .position(x: totalContentWidth / 2, y: chartHeight + 17)
+                                    .frame(width: totalContentWidth, height: chartHeight + 40)
                                 }
-                                .frame(width: totalContentWidth, height: chartHeight + 34)
-                                .contentShape(Rectangle())
-                                .gesture(
-                                    DragGesture(minimumDistance: 0)
-                                        .onChanged { val in
-                                            let locX = val.location.x
-                                            let rawIdx = Int(round((locX - leftMargin) / pointSpacing))
-                                            let validIdx = max(0, min(points.count - 1, rawIdx))
-                                            hoveredPoint = points[validIdx]
-                                            if points.count > 1 {
-                                                sliderFraction = Double(validIdx) / Double(points.count - 1)
-                                            }
+                                .onAppear {
+                                    if !points.isEmpty {
+                                        sliderFraction = 1.0
+                                        let lastIdx = points.count - 1
+                                        hoveredPoint = points[lastIdx]
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                            scrollProxy.scrollTo("timeline_anchor_\(lastIdx)", anchor: .trailing)
                                         }
-                                )
-                            }
-                            .onAppear {
-                                if let last = points.last {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                        scrollProxy.scrollTo(last.id, anchor: .trailing)
+                                    }
+                                }
+                                .onChange(of: sliderFraction) { _, newFrac in
+                                    guard points.count > 1 else { return }
+                                    let targetIdx = max(0, min(points.count - 1, Int(round(newFrac * Double(points.count - 1)))))
+                                    hoveredPoint = points[targetIdx]
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        scrollProxy.scrollTo("timeline_anchor_\(targetIdx)", anchor: .center)
                                     }
                                 }
                             }
-                            
-                            // Barra de desplazamiento horizontal dedicada (Slider con indicador cian y flechas)
-                            if overflows {
-                                IntervalHorizontalSliderBar(
-                                    totalCount: points.count,
-                                    totalContentWidth: totalContentWidth,
-                                    containerWidth: w,
-                                    startHour: points.first?.timestamp.formatted(date: .numeric, time: .shortened) ?? "",
-                                    endHour: points.last?.timestamp.formatted(date: .numeric, time: .shortened) ?? "",
-                                    sliderFraction: $sliderFraction,
-                                    onTargetChanged: { targetIdx in
-                                        if targetIdx >= 0 && targetIdx < points.count {
-                                            hoveredPoint = points[targetIdx]
-                                            withAnimation(.easeInOut(duration: 0.18)) {
-                                                scrollProxy.scrollTo(points[targetIdx].id, anchor: .center)
-                                            }
-                                        }
+                        }
+                        
+                        // Barra de desplazamiento horizontal dedicada (Slider con indicador cian y flechas)
+                        if overflows {
+                            IntervalHorizontalSliderBar(
+                                totalCount: points.count,
+                                totalContentWidth: totalContentWidth,
+                                containerWidth: availableScrollWidth,
+                                startHour: points.first?.timestamp.formatted(.dateTime.day().month(.abbreviated).hour().minute()) ?? "",
+                                endHour: points.last?.timestamp.formatted(.dateTime.day().month(.abbreviated).hour().minute()) ?? "",
+                                sliderFraction: $sliderFraction,
+                                onTargetChanged: { targetIdx in
+                                    if targetIdx >= 0 && targetIdx < points.count {
+                                        hoveredPoint = points[targetIdx]
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
                 }
@@ -947,6 +969,8 @@ struct IntervalHorizontalSliderBar: View {
     @Binding var sliderFraction: Double
     let onTargetChanged: (Int) -> Void
     
+    @State private var dragStartFraction: Double? = nil
+    
     private func computeIndex(from fraction: Double) -> Int {
         guard totalCount > 1 else { return 0 }
         let total = Double(totalCount - 1)
@@ -956,9 +980,10 @@ struct IntervalHorizontalSliderBar: View {
     
     var body: some View {
         HStack(spacing: 10) {
-            // Botón retroceder (-20% o varias franjas)
+            // Botón retroceder (-15% o varias franjas)
             Button(action: {
-                let newFrac = max(0.0, sliderFraction - 0.20)
+                let step = max(0.04, 1.0 / Double(max(1, totalCount - 1)))
+                let newFrac = max(0.0, sliderFraction - max(step * 4, 0.15))
                 sliderFraction = newFrac
                 onTargetChanged(computeIndex(from: newFrac))
             }) {
@@ -974,7 +999,7 @@ struct IntervalHorizontalSliderBar: View {
             // Interactive Slider Track (Siempre visible y con thumb brillante)
             GeometryReader { geo in
                 let trackWidth = geo.size.width
-                let visibleRatio = max(0.15, min(1.0, Double(containerWidth / max(1.0, totalContentWidth))))
+                let visibleRatio = max(0.12, min(1.0, Double(containerWidth / max(1.0, totalContentWidth))))
                 let thumbWidth = max(38.0, trackWidth * CGFloat(visibleRatio))
                 let maxTravel = max(1.0, trackWidth - thumbWidth)
                 let thumbOffset = maxTravel * CGFloat(sliderFraction)
@@ -1013,28 +1038,37 @@ struct IntervalHorizontalSliderBar: View {
                         .shadow(color: Color.liquidCyan.opacity(0.7), radius: 5)
                         .offset(x: thumbOffset)
                         .gesture(
-                            DragGesture(minimumDistance: 1)
+                            DragGesture(minimumDistance: 0)
                                 .onChanged { val in
-                                    let newOffset = max(0.0, min(maxTravel, thumbOffset + val.translation.width))
-                                    let frac = Double(newOffset / maxTravel)
-                                    sliderFraction = frac
-                                    onTargetChanged(computeIndex(from: frac))
+                                    if dragStartFraction == nil {
+                                        dragStartFraction = sliderFraction
+                                    }
+                                    let start = dragStartFraction ?? sliderFraction
+                                    let delta = Double(val.translation.width / maxTravel)
+                                    let newFrac = max(0.0, min(1.0, start + delta))
+                                    sliderFraction = newFrac
+                                    onTargetChanged(computeIndex(from: newFrac))
+                                }
+                                .onEnded { _ in
+                                    dragStartFraction = nil
                                 }
                         )
                 }
                 .frame(height: 14)
                 .contentShape(Rectangle())
                 .onTapGesture { loc in
-                    let frac = max(0.0, min(1.0, Double(loc.x / trackWidth)))
+                    let targetX = max(0.0, min(trackWidth, loc.x))
+                    let frac = max(0.0, min(1.0, Double((targetX - thumbWidth / 2) / maxTravel)))
                     sliderFraction = frac
                     onTargetChanged(computeIndex(from: frac))
                 }
             }
             .frame(height: 14)
             
-            // Botón avanzar (+20% o varias franjas)
+            // Botón avanzar (+15% o varias franjas)
             Button(action: {
-                let newFrac = min(1.0, sliderFraction + 0.20)
+                let step = max(0.04, 1.0 / Double(max(1, totalCount - 1)))
+                let newFrac = min(1.0, sliderFraction + max(step * 4, 0.15))
                 sliderFraction = newFrac
                 onTargetChanged(computeIndex(from: newFrac))
             }) {
@@ -1048,7 +1082,7 @@ struct IntervalHorizontalSliderBar: View {
             .buttonStyle(.plain)
             
             // Indicador de franja horaria inicial y final
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 Text(startHour)
                 Text("→")
                 Text(endHour)
