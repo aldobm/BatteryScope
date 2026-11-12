@@ -719,10 +719,14 @@ struct BlockBarColumnView: View {
     let onSelect: () -> Void
     
     var body: some View {
-        let badgeHeight: CGFloat = 20.0
         let chartAreaHeight = max(40.0, availableHeight - 22.0)
-        // Hard-cap the bar so it and the badge NEVER exceed chartAreaHeight
-        let maxBarHeight = max(20.0, chartAreaHeight - badgeHeight - 6.0)
+        
+        // Espacio vertical reservado en la parte superior del panel para:
+        // 1. Etiqueta de consumo del intervalo (arriba en el panel, e.g. 5%, 1%, 2%, 0%)
+        // 2. Insignia de nivel de batería (encima de donde alcanza la barra, e.g. ⚡ 100%)
+        // De esta forma, incluso al 100% de batería NUNCA se enciman ni desbordan verticalmente.
+        let topReservedSpace: CGFloat = 46.0
+        let maxBarHeight = max(20.0, chartAreaHeight - topReservedSpace)
         
         // El tamaño de la barra es estrictamente proporcional al nivel real de batería (0% - 100%)
         // De esta forma dos barras de 48% tienen exactamente el mismo tamaño, y 67% es mayor que 65%.
@@ -792,6 +796,20 @@ struct BlockBarColumnView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .padding(.bottom, totalHeight + 3)
+                
+                // CONSUMO EN ESTE INTERVALO: Colocado en la parte superior del panel (ej. 5%, 1%, 2%, 0%)
+                VStack(spacing: 0) {
+                    Text(block.consumptionText)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(
+                            block.isCharging ? Color.liquidAmber.opacity(0.85) :
+                            (block.isSleeping ? Color(hex: "A0AEC0").opacity(0.75) :
+                            (block.batteryDrainPercent > 2.0 ? Color.liquidPink : Color.white.opacity(0.85)))
+                        )
+                        .padding(.top, 4)
+                    Spacer()
+                }
+                .frame(width: barWidth, height: chartAreaHeight)
             }
             .frame(height: availableHeight, alignment: .bottom)
             

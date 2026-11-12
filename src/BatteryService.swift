@@ -136,6 +136,7 @@ public struct TodayHalfHourBlock: Identifiable, Equatable {
     public let topEnergyLabel: String
     public let condition: SystemIntervalCondition
     public let numberText: String
+    public let consumptionText: String
     public let batteryLevel: Int
     public let hasMoon: Bool
     public let hasBolt: Bool
@@ -941,6 +942,23 @@ public class BatteryService: ObservableObject {
             numberText = "\(blockBatteryLevel)%"
             topEnergyLabel = "\(numberText) \(hasBolt ? "⚡️" : "")\(hasMoon ? "🌙" : "")".trimmingCharacters(in: .whitespaces)
             
+            // Consumo o recarga en este intervalo (mostrado en la parte superior del panel, ej: 5%, 1%, 2%, 0%)
+            let intervalConsumptionText: String = {
+                if isConnectedToAC {
+                    if rechargePct >= 0.5 {
+                        return String(format: "+%.0f%%", rechargePct)
+                    } else {
+                        return "0%"
+                    }
+                } else {
+                    if drainPct >= 0.5 {
+                        return String(format: "%.0f%%", round(drainPct))
+                    } else {
+                        return "0%"
+                    }
+                }
+            }()
+            
             var shares: [AppBlockShare] = []
             let totalMWh = max(15.0, (isConnectedToAC ? (rechargePct > 0 ? rechargePct * 65.0 : 120.0) : drainPct * 55.0))
             
@@ -1069,6 +1087,7 @@ public class BatteryService: ObservableObject {
                 topEnergyLabel: topEnergyLabel,
                 condition: condition,
                 numberText: numberText,
+                consumptionText: intervalConsumptionText,
                 batteryLevel: blockBatteryLevel,
                 hasMoon: hasMoon,
                 hasBolt: hasBolt,
