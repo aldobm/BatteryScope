@@ -187,7 +187,7 @@ public struct BatterySnapshot: Equatable {
 }
 
 public struct HourlyHistoryPoint: Identifiable, Equatable {
-    public let id = UUID()
+    public var id: String { "\(timestamp.timeIntervalSince1970)_\(batteryPercent)" }
     public let timestamp: Date
     public let batteryPercent: Int
     public let isCharging: Bool
@@ -1177,8 +1177,39 @@ public class BatteryService: ObservableObject {
                 }
             }
             results.sort { $0.timestamp < $1.timestamp }
-            if results.isEmpty {
-                results.append(HourlyHistoryPoint(
+            
+            // Deduplicación limpia: eliminar timestamps idénticos y ruido repetitivo de segundo a segundo
+            var cleanResults: [HourlyHistoryPoint] = []
+            for pt in results {
+                if let last = cleanResults.last {
+                    if last.timestamp == pt.timestamp {
+                        cleanResults[cleanResults.count - 1] = pt
+                        continue
+                    }
+                    let elapsed = pt.timestamp.timeIntervalSince(last.timestamp)
+                    // Si el estado de carga y porcentaje no cambiaron y pasaron menos de 10 minutos, omitir puntos repetidos
+                    if last.isCharging == pt.isCharging && last.batteryPercent == pt.batteryPercent && elapsed < 600 {
+                        continue
+                    }
+                }
+                cleanResults.append(pt)
+            }
+            
+            // Garantizar que el estado en vivo actual esté presente al final
+            if let last = cleanResults.last, now.timeIntervalSince(last.timestamp) > 60 {
+                let isAC = self.snapshot.isExternalConnected
+                cleanResults.append(HourlyHistoryPoint(
+                    timestamp: now,
+                    batteryPercent: self.snapshot.chargePercent > 0 ? self.snapshot.chargePercent : last.batteryPercent,
+                    isCharging: isAC,
+                    topAppName: isAC ? "Enchufe CA Conectado" : "Batería en Uso",
+                    topAppPower: isAC ? 0.0 : 8.5,
+                    notes: "Actual"
+                ))
+            }
+            
+            if cleanResults.isEmpty {
+                cleanResults.append(HourlyHistoryPoint(
                     timestamp: Date(),
                     batteryPercent: self.snapshot.chargePercent > 0 ? self.snapshot.chargePercent : 80,
                     isCharging: self.snapshot.isExternalConnected,
@@ -1187,7 +1218,7 @@ public class BatteryService: ObservableObject {
                     notes: "Actual"
                 ))
             }
-            return results
+            return cleanResults
         } catch {
             return []
         }

@@ -5,14 +5,16 @@ import AppKit
 
 public struct TimelineChartView: View {
     @ObservedObject var service = BatteryService.shared
+    @ObservedObject private var locManager = LocalizationManager.shared
     @State private var hoveredPoint: HourlyHistoryPoint? = nil
+    @State private var sliderFraction: Double = 1.0
     
     private var points: [HourlyHistoryPoint] {
         if service.historyPoints.isEmpty {
             return [
-                HourlyHistoryPoint(timestamp: Date().addingTimeInterval(-7200), batteryPercent: 94, isCharging: false, topAppName: "Firefox", topAppPower: 26.0, notes: "Descargando"),
-                HourlyHistoryPoint(timestamp: Date().addingTimeInterval(-3600), batteryPercent: 88, isCharging: false, topAppName: "Google Drive", topAppPower: 18.0, notes: "Sincronización"),
-                HourlyHistoryPoint(timestamp: Date(), batteryPercent: 90, isCharging: true, topAppName: "Cargador USB-C", topAppPower: 0, notes: "Carga en progreso")
+                HourlyHistoryPoint(timestamp: Date().addingTimeInterval(-7200), batteryPercent: 94, isCharging: false, topAppName: "Batería en Uso", topAppPower: 26.0, notes: "Descargando"),
+                HourlyHistoryPoint(timestamp: Date().addingTimeInterval(-3600), batteryPercent: 88, isCharging: false, topAppName: "Batería en Uso", topAppPower: 18.0, notes: "Uso normal"),
+                HourlyHistoryPoint(timestamp: Date(), batteryPercent: 90, isCharging: true, topAppName: "Enchufe CA Conectado", topAppPower: 0, notes: "Carga en progreso")
             ]
         }
         return service.historyPoints
@@ -20,159 +22,268 @@ public struct TimelineChartView: View {
     
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Header con títulos y leyenda
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Línea de Tiempo del Consumo")
+                    Text(loc("timeline_title"))
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Nivel de batería y actividades registradas por hora")
+                    Text(loc("timeline_subtitle"))
                         .font(.system(size: 12))
                         .foregroundColor(Color.textSecondary)
                 }
                 Spacer()
                 
-                HStack(spacing: 12) {
+                HStack(spacing: 14) {
                     HStack(spacing: 6) {
                         Circle().fill(Color.liquidCyan).frame(width: 8, height: 8)
-                        Text("Batería").font(.system(size: 11)).foregroundColor(Color.textSecondary)
+                        Text(loc("on_battery")).font(.system(size: 11, weight: .medium)).foregroundColor(Color.textSecondary)
                     }
                     HStack(spacing: 6) {
                         Circle().fill(Color.liquidAmber).frame(width: 8, height: 8)
-                        Text("Cargando").font(.system(size: 11)).foregroundColor(Color.textSecondary)
+                        Text(loc("charging")).font(.system(size: 11, weight: .medium)).foregroundColor(Color.textSecondary)
                     }
                 }
             }
             
-            GeometryReader { geo in
-                let w = geo.size.width
-                let h = geo.size.height - 24
-                
-                ZStack(alignment: .topLeading) {
-                    VStack {
-                        ForEach([100, 75, 50, 25], id: \.self) { pct in
-                            HStack {
-                                Text("\(pct)%")
-                                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(Color.textMuted)
-                                    .frame(width: 30, alignment: .trailing)
-                                Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
-                            }
-                            if pct > 25 { Spacer() }
-                        }
-                    }
-                    .frame(height: h)
+            // Área de Gráfico con Desplazamiento Horizontal y Slider
+            VStack(spacing: 10) {
+                GeometryReader { geo in
+                    let w = geo.size.width
+                    let pointSpacing: CGFloat = 28.0
+                    let leftMargin: CGFloat = 46.0
+                    let totalContentWidth = max(w, leftMargin + CGFloat(points.count) * pointSpacing + 30.0)
+                    let chartHeight: CGFloat = 165.0
+                    let overflows = totalContentWidth > w
                     
-                    if points.count >= 2 {
-                        let stepX = (w - 40) / CGFloat(max(points.count - 1, 1))
-                        
-                        Path { path in
-                            for (i, pt) in points.enumerated() {
-                                let x = 40 + CGFloat(i) * stepX
-                                let y = h - (CGFloat(pt.batteryPercent) / 100.0 * h)
-                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                                else { path.addLine(to: CGPoint(x: x, y: y)) }
+                    VStack(spacing: 10) {
+                        ScrollViewReader { scrollProxy in
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                ZStack(alignment: .topLeading) {
+                                    // Líneas guía horizontales (100%, 75%, 50%, 25%) que cubren todo el ancho desplazable
+                                    VStack(spacing: 0) {
+                                        ForEach([100, 75, 50, 25], id: \.self) { pct in
+                                            HStack(spacing: 6) {
+                                                Text("\(pct)%")
+                                                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                                    .foregroundColor(Color.textMuted.opacity(0.75))
+                                                    .frame(width: 34, alignment: .trailing)
+                                                Rectangle()
+                                                    .fill(Color.white.opacity(0.06))
+                                                    .frame(height: 1)
+                                            }
+                                            if pct > 25 { Spacer() }
+                                        }
+                                    }
+                                    .frame(width: totalContentWidth, height: chartHeight)
+                                    
+                                    if points.count >= 2 {
+                                        // Relleno degradado fluido bajo la curva
+                                        Path { path in
+                                            for (i, pt) in points.enumerated() {
+                                                let x = leftMargin + CGFloat(i) * pointSpacing
+                                                let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
+                                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                                                else { path.addLine(to: CGPoint(x: x, y: y)) }
+                                            }
+                                            if let lastIdx = points.indices.last {
+                                                let lastX = leftMargin + CGFloat(lastIdx) * pointSpacing
+                                                path.addLine(to: CGPoint(x: lastX, y: chartHeight))
+                                                path.addLine(to: CGPoint(x: leftMargin, y: chartHeight))
+                                                path.closeSubpath()
+                                            }
+                                        }
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.liquidCyan.opacity(0.30),
+                                                    Color.liquidPurple.opacity(0.08),
+                                                    Color.clear
+                                                ],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                        
+                                        // Trazo curvo continuo con degradado neón
+                                        Path { path in
+                                            for (i, pt) in points.enumerated() {
+                                                let x = leftMargin + CGFloat(i) * pointSpacing
+                                                let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
+                                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                                                else { path.addLine(to: CGPoint(x: x, y: y)) }
+                                            }
+                                        }
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.liquidCyan, Color.liquidEmerald, Color.liquidAmber],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            ),
+                                            style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round)
+                                        )
+                                        .shadow(color: Color.liquidCyan.opacity(0.4), radius: 6)
+                                        
+                                        // Nodos discretos con separación holgada
+                                        ForEach(Array(points.enumerated()), id: \.element.id) { (i, pt) in
+                                            let x = leftMargin + CGFloat(i) * pointSpacing
+                                            let y = chartHeight - (CGFloat(pt.batteryPercent) / 100.0 * chartHeight)
+                                            let isSelected = (hoveredPoint?.id == pt.id)
+                                            
+                                            Circle()
+                                                .fill(pt.isCharging ? Color.liquidAmber : Color.liquidCyan)
+                                                .frame(width: isSelected ? 10 : 6.5, height: isSelected ? 10 : 6.5)
+                                                .overlay(Circle().stroke(Color.white, lineWidth: isSelected ? 2 : 1.2))
+                                                .shadow(color: (pt.isCharging ? Color.liquidAmber : Color.liquidCyan).opacity(0.7), radius: isSelected ? 6 : 2)
+                                                .position(x: x, y: y)
+                                                .id(pt.id)
+                                        }
+                                        
+                                        // Línea vertical interactiva y punto pulsante al seleccionar
+                                        if let selected = hoveredPoint ?? points.last {
+                                            if let idx = points.firstIndex(where: { $0.id == selected.id }) {
+                                                let x = leftMargin + CGFloat(idx) * pointSpacing
+                                                let y = chartHeight - (CGFloat(selected.batteryPercent) / 100.0 * chartHeight)
+                                                
+                                                Rectangle()
+                                                    .fill(
+                                                        LinearGradient(
+                                                            colors: [Color.white.opacity(0.7), Color.white.opacity(0.1)],
+                                                            startPoint: .top,
+                                                            endPoint: .bottom
+                                                        )
+                                                    )
+                                                    .frame(width: 1.5, height: chartHeight)
+                                                    .position(x: x, y: chartHeight / 2)
+                                                
+                                                Circle()
+                                                    .fill(Color.liquidPink)
+                                                    .frame(width: 11, height: 11)
+                                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                                    .shadow(color: Color.liquidPink.opacity(0.9), radius: 7)
+                                                    .position(x: x, y: y)
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Eje X: Horas y fechas a lo largo de la línea de tiempo
+                                    HStack(spacing: 0) {
+                                        ForEach(Array(points.enumerated()), id: \.element.id) { (i, pt) in
+                                            let showLabel = (i % 3 == 0 || i == points.count - 1)
+                                            Group {
+                                                if showLabel {
+                                                    VStack(spacing: 1) {
+                                                        Text(pt.timestamp.formatted(date: .omitted, time: .shortened))
+                                                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                                            .foregroundColor(Color.textSecondary)
+                                                        Text(pt.timestamp.formatted(date: .numeric, time: .omitted))
+                                                            .font(.system(size: 7.5, weight: .medium))
+                                                            .foregroundColor(Color.textMuted.opacity(0.7))
+                                                    }
+                                                } else {
+                                                    Color.clear
+                                                }
+                                            }
+                                            .frame(width: pointSpacing)
+                                        }
+                                    }
+                                    .padding(.leading, leftMargin - (pointSpacing / 2))
+                                    .position(x: totalContentWidth / 2, y: chartHeight + 17)
+                                }
+                                .frame(width: totalContentWidth, height: chartHeight + 34)
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { val in
+                                            let locX = val.location.x
+                                            let rawIdx = Int(round((locX - leftMargin) / pointSpacing))
+                                            let validIdx = max(0, min(points.count - 1, rawIdx))
+                                            hoveredPoint = points[validIdx]
+                                            if points.count > 1 {
+                                                sliderFraction = Double(validIdx) / Double(points.count - 1)
+                                            }
+                                        }
+                                )
                             }
-                            path.addLine(to: CGPoint(x: 40 + CGFloat(points.count - 1) * stepX, y: h))
-                            path.addLine(to: CGPoint(x: 40, y: h))
-                            path.closeSubpath()
-                        }
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.liquidCyan.opacity(0.25), Color.liquidPurple.opacity(0.02), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        
-                        Path { path in
-                            for (i, pt) in points.enumerated() {
-                                let x = 40 + CGFloat(i) * stepX
-                                let y = h - (CGFloat(pt.batteryPercent) / 100.0 * h)
-                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                                else { path.addLine(to: CGPoint(x: x, y: y)) }
+                            .onAppear {
+                                if let last = points.last {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                        scrollProxy.scrollTo(last.id, anchor: .trailing)
+                                    }
+                                }
                             }
-                        }
-                        .stroke(
-                            LinearGradient(
-                                colors: [Color.liquidCyan, Color.liquidEmerald, Color.liquidAmber],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
-                        )
-                        .shadow(color: Color.liquidCyan.opacity(0.4), radius: 6)
-                        
-                        ForEach(Array(points.enumerated()), id: \.offset) { (i, pt) in
-                            let x = 40 + CGFloat(i) * stepX
-                            let y = h - (CGFloat(pt.batteryPercent) / 100.0 * h)
-                            Circle()
-                                .fill(pt.isCharging ? Color.liquidAmber : Color.liquidCyan)
-                                .frame(width: 7, height: 7)
-                                .overlay(Circle().stroke(Color.white, lineWidth: 1.2))
-                                .position(x: x, y: y)
-                        }
-                        
-                        if let selected = hoveredPoint {
-                            let idx = points.firstIndex(where: { $0.id == selected.id }) ?? 0
-                            let x = 40 + CGFloat(idx) * stepX
-                            let y = h - (CGFloat(selected.batteryPercent) / 100.0 * h)
                             
-                            Rectangle().fill(Color.white.opacity(0.5)).frame(width: 1, height: h).position(x: x, y: h / 2)
-                            Circle().fill(Color.liquidPink).frame(width: 10, height: 10).overlay(Circle().stroke(Color.white, lineWidth: 1.5)).position(x: x, y: y)
+                            // Barra de desplazamiento horizontal dedicada (Slider con indicador cian y flechas)
+                            if overflows {
+                                IntervalHorizontalSliderBar(
+                                    totalCount: points.count,
+                                    totalContentWidth: totalContentWidth,
+                                    containerWidth: w,
+                                    startHour: points.first?.timestamp.formatted(date: .numeric, time: .shortened) ?? "",
+                                    endHour: points.last?.timestamp.formatted(date: .numeric, time: .shortened) ?? "",
+                                    sliderFraction: $sliderFraction,
+                                    onTargetChanged: { targetIdx in
+                                        if targetIdx >= 0 && targetIdx < points.count {
+                                            hoveredPoint = points[targetIdx]
+                                            withAnimation(.easeInOut(duration: 0.18)) {
+                                                scrollProxy.scrollTo(points[targetIdx].id, anchor: .center)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { val in
-                            let locX = val.location.x
-                            let stepX = (w - 40) / CGFloat(max(points.count - 1, 1))
-                            let rawIdx = Int(round((locX - 40) / stepX))
-                            let validIdx = max(0, min(points.count - 1, rawIdx))
-                            hoveredPoint = points[validIdx]
-                        }
-                )
+                .frame(height: 255)
             }
-            .frame(height: 180)
+            .padding(18)
+            .liquidGlassCard(cornerRadius: 18)
             
+            // Tarjeta inferior de detalle del punto seleccionado
             if let target = hoveredPoint ?? points.last {
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Hora Registrada")
+                HStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(loc("recorded_time"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(Color.textMuted)
-                        Text(target.timestamp.formatted(date: .omitted, time: .shortened))
+                        Text(target.timestamp.formatted(date: .abbreviated, time: .shortened))
                             .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                     }
-                    Divider().frame(height: 24).background(Color.white.opacity(0.12))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Carga")
+                    
+                    Divider().frame(height: 28).background(Color.white.opacity(0.12))
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(loc("battery_charge"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(Color.textMuted)
-                        HStack(spacing: 4) {
+                        HStack(spacing: 5) {
                             Text("\(target.batteryPercent)%")
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(Color.liquidCyan)
+                                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                                .foregroundColor(target.isCharging ? Color.liquidAmber : Color.liquidCyan)
                             Image(systemName: target.isCharging ? "bolt.fill" : "battery.75")
                                 .foregroundColor(target.isCharging ? Color.liquidAmber : Color.liquidCyan)
-                                .font(.system(size: 11))
+                                .font(.system(size: 12, weight: .bold))
                         }
                     }
-                    Divider().frame(height: 24).background(Color.white.opacity(0.12))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Estado del Mac")
+                    
+                    Divider().frame(height: 28).background(Color.white.opacity(0.12))
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(loc("mac_state"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(Color.textMuted)
-                        Text(target.topAppName)
-                            .font(.system(size: 12, weight: .semibold))
+                        Text(target.isCharging ? loc("connected_ac") : loc("battery_in_use"))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.white)
                     }
+                    
                     Spacer()
                 }
-                .padding(12)
-                .background(Color(hex: "0C0518").opacity(0.45))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(hex: "0C0518").opacity(0.55))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             }
