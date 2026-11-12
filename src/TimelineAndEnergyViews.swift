@@ -1329,11 +1329,12 @@ public struct CustomGlassCalendarView: View {
                 ForEach(daysInMonth, id: \.self) { dayDate in
                     let isSelected = calendar.isDate(dayDate, inSameDayAs: selectedDate)
                     let isToday = calendar.isDateInToday(dayDate)
-                    let hasData = availableDates.contains(where: { calendar.isDate($0, inSameDayAs: dayDate) })
+                    let isFuture = dayDate > calendar.startOfDay(for: Date())
+                    let hasData = isToday || availableDates.contains(where: { calendar.isDate($0, inSameDayAs: dayDate) })
                     let dayNum = calendar.component(.day, from: dayDate)
                     
                     Button(action: {
-                        if hasData {
+                        if !isFuture && hasData {
                             onSelectDate(dayDate)
                         }
                     }) {
@@ -1353,7 +1354,7 @@ public struct CustomGlassCalendarView: View {
                                             lineWidth: isToday ? 1.5 : (isSelected ? 1.0 : 0.6)
                                         )
                                 )
-                                .shadow(color: isSelected ? Color.liquidPink.opacity(0.6) : Color.clear, radius: 4)
+                                .shadow(color: isSelected ? Color.liquidPink.opacity(0.6) : (isToday ? Color.liquidCyan.opacity(0.4) : Color.clear), radius: 4)
                             
                             VStack(spacing: 1) {
                                 Text("\(dayNum)")
@@ -1363,7 +1364,7 @@ public struct CustomGlassCalendarView: View {
                                         (hasData ? (isToday ? Color.liquidCyan : Color.white) : Color.white.opacity(0.20))
                                     )
                                 
-                                if hasData && !isSelected {
+                                if hasData && !isSelected && !isFuture {
                                     Circle()
                                         .fill(Color.liquidCyan)
                                         .frame(width: 3.5, height: 3.5)
@@ -1375,7 +1376,7 @@ public struct CustomGlassCalendarView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .disabled(!hasData)
+                    .disabled(isFuture || !hasData)
                 }
             }
             
@@ -1547,6 +1548,8 @@ public struct TodayBlocksView: View {
                             selectedDate: service.selectedDate,
                             availableDates: service.availableDates,
                             onSelectDate: { pickedDate in
+                                selectedBlockId = nil
+                                hoveredShare = nil
                                 service.changeSelectedDate(pickedDate)
                                 showCalendarPicker = false
                             }
@@ -1626,6 +1629,12 @@ public struct TodayBlocksView: View {
                                 .frame(maxHeight: .infinity, alignment: .bottom)
                             }
                             .onAppear {
+                                if !Calendar.current.isDateInToday(service.selectedDate) {
+                                    let now = Date()
+                                    if Calendar.current.isDate(service.selectedDate, inSameDayAs: Calendar.current.date(byAdding: .day, value: -1, to: now)!) {
+                                        service.changeSelectedDate(now)
+                                    }
+                                }
                                 if let target = selectedBlockId ?? blocks.last?.id {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                         scrollProxy.scrollTo(target, anchor: .trailing)
@@ -1633,6 +1642,8 @@ public struct TodayBlocksView: View {
                                 }
                             }
                             .onChange(of: service.selectedDate) { _, _ in
+                                selectedBlockId = nil
+                                hoveredShare = nil
                                 sliderFraction = 1.0
                                 if let target = blocks.last?.id {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
