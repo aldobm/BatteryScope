@@ -286,7 +286,7 @@ public class BatteryService: ObservableObject {
     @Published public var availableDates: [Date] = [Date()]
     @Published public var intervalMode: ConsumptionIntervalMode = .halfHour
     @Published public var isIntervalAnalysisPaused: Bool = false
-    @Published public var isSimulating100: Bool = true
+    @Published public var isSimulating100: Bool = false
     
     public func toggleSimulate100Percent() {
         self.isSimulating100.toggle()
@@ -1121,31 +1121,27 @@ public class BatteryService: ObservableObject {
             blockStart = blockEnd
         }
         
-        if self.isSimulating100 && blocks.count >= 4 {
-            let count = blocks.count
-            // Demostración escalonada que culmina en 100%: 85% -> 92% -> 97% -> 100%
-            let simLevels = [85, 92, 97, 100]
-            let simConsumptions = ["+5%", "+7%", "+5%", "0%"]
-            for i in 0..<4 {
-                let targetIdx = count - 4 + i
-                let old = blocks[targetIdx]
-                blocks[targetIdx] = TodayHalfHourBlock(
+        if self.isSimulating100 {
+            // Cuando se presiona el botón, TODAS las barras suben al 100%
+            // y los valores de arriba también se ponen al 100% para verificar la app
+            blocks = blocks.map { old in
+                TodayHalfHourBlock(
                     startTime: old.startTime,
                     endTime: old.endTime,
                     label: old.label,
                     shortHour: old.shortHour,
-                    batteryDrainPercent: old.batteryDrainPercent,
-                    rechargePercent: 5.0,
+                    batteryDrainPercent: 1.0,
+                    rechargePercent: 0.0,
                     isCharging: true,
                     isSleeping: false,
                     sleepStateReason: old.sleepStateReason,
                     totalMWh: old.totalMWh,
                     topApps: old.topApps,
-                    topEnergyLabel: "\(simLevels[i])% ⚡️",
+                    topEnergyLabel: "100% ⚡️",
                     condition: .lidOpenAC,
-                    numberText: "\(simLevels[i])%",
-                    consumptionText: simConsumptions[i],
-                    batteryLevel: simLevels[i],
+                    numberText: "100%",
+                    consumptionText: "100%",
+                    batteryLevel: 100,
                     hasMoon: false,
                     hasBolt: true,
                     hasBattery: false
