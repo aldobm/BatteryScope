@@ -79,10 +79,10 @@ swiftc \
 echo "==> Firmando aplicación ad-hoc..."
 codesign --force --deep -s - "$APP_BUNDLE"
 
-echo "==> Instalando en ~/Applications/..."
-mkdir -p "$HOME/Applications"
+echo "==> Instalando en /Applications/..."
 rm -rf "$HOME/Applications/$APP_NAME.app"
-cp -R "$APP_BUNDLE" "$HOME/Applications/"
+rm -rf "/Applications/$APP_NAME.app"
+cp -R "$APP_BUNDLE" "/Applications/"
 
 echo "==> ¡Compilación e instalación completada con éxito!"
-echo "Ubicación: $HOME/Applications/$APP_NAME.app"
+echo "Ubicación: /Applications/$APP_NAME.app"
