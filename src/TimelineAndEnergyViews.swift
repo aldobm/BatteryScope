@@ -1564,6 +1564,8 @@ public struct TodayBlocksView: View {
                     Text(loc("day_analyzed"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(Color.textSecondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                     
                     HStack(spacing: 0) {
                         // Botón día anterior (<)
@@ -1596,14 +1598,17 @@ public struct TodayBlocksView: View {
                                 Text(Calendar.current.isDateInToday(service.selectedDate) ? "\(loc("today_label")) (\(dayFormatter.string(from: service.selectedDate)))" : dayFormatter.string(from: service.selectedDate))
                                     .font(.system(size: 11.5, weight: .bold, design: .rounded))
                                     .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
                                 
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 8, weight: .bold))
                                     .foregroundColor(Color.textSecondary)
                                     .rotationEffect(.degrees(showCalendarPicker ? 180 : 0))
                             }
-                            .padding(.horizontal, 9)
+                            .padding(.horizontal, 10)
                             .frame(height: 26)
+                            .fixedSize(horizontal: true, vertical: false)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -1637,6 +1642,7 @@ public struct TodayBlocksView: View {
                         .disabled(!canGoForwardDay)
                         .help(loc("next_day"))
                     }
+                    .fixedSize(horizontal: true, vertical: false)
                     .background(Color.white.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(
@@ -1644,6 +1650,7 @@ public struct TodayBlocksView: View {
                             .strokeBorder(showCalendarPicker ? Color.liquidCyan : Color.white.opacity(0.14), lineWidth: 1)
                     )
                 }
+                .layoutPriority(1)
                 
                 Spacer()
                 
