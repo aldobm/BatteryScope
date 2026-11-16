@@ -1434,6 +1434,55 @@ public struct TodayBlocksView: View {
         return f
     }
     
+    private var canGoForwardDay: Bool {
+        let calendar = Calendar.current
+        let currentStart = calendar.startOfDay(for: service.selectedDate)
+        let todayStart = calendar.startOfDay(for: Date())
+        return currentStart < todayStart
+    }
+    
+    private var canGoBackDay: Bool {
+        let calendar = Calendar.current
+        let currentStart = calendar.startOfDay(for: service.selectedDate)
+        let oldest = service.availableDates.min().map { calendar.startOfDay(for: $0) } ?? calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: Date()))!
+        return currentStart > oldest
+    }
+    
+    private func goToPreviousDay() {
+        let calendar = Calendar.current
+        let currentStart = calendar.startOfDay(for: service.selectedDate)
+        if let prev = service.availableDates.filter({ calendar.startOfDay(for: $0) < currentStart }).max() {
+            changeDateWithReset(prev)
+        } else if let fallback = calendar.date(byAdding: .day, value: -1, to: service.selectedDate) {
+            changeDateWithReset(fallback)
+        }
+    }
+    
+    private func goToNextDay() {
+        let calendar = Calendar.current
+        let currentStart = calendar.startOfDay(for: service.selectedDate)
+        let todayStart = calendar.startOfDay(for: Date())
+        guard currentStart < todayStart else { return }
+        
+        if let next = service.availableDates.filter({ 
+            let d = calendar.startOfDay(for: $0)
+            return d > currentStart && d <= todayStart 
+        }).min() {
+            changeDateWithReset(next)
+        } else if let fallback = calendar.date(byAdding: .day, value: 1, to: service.selectedDate) {
+            changeDateWithReset(min(todayStart, fallback))
+        }
+    }
+    
+    private func changeDateWithReset(_ newDate: Date) {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            selectedBlockId = nil
+            hoveredShare = nil
+            sliderFraction = 1.0
+            service.changeSelectedDate(newDate)
+        }
+    }
+    
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header with Calendar, Pause/Resume & Interval Selector
@@ -1509,53 +1558,91 @@ public struct TodayBlocksView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             
-            // Calendar / Date Bar con Selector Personalizado Dark Neón
+            // Calendar / Date Bar con Selector y Botones < > para Aumentar y Disminuir el Día
             HStack(spacing: 12) {
                 HStack(spacing: 8) {
                     Text(loc("day_analyzed"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(Color.textSecondary)
                     
-                    Button(action: {
-                        showCalendarPicker.toggle()
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "calendar")
-                                .foregroundColor(Color.liquidCyan)
-                                .font(.system(size: 12, weight: .bold))
-                            
-                            Text(Calendar.current.isDateInToday(service.selectedDate) ? "\(loc("today_label")) (\(dayFormatter.string(from: service.selectedDate)))" : dayFormatter.string(from: service.selectedDate))
-                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 8.5, weight: .bold))
-                                .foregroundColor(Color.textSecondary)
-                                .rotationEffect(.degrees(showCalendarPicker ? 180 : 0))
+                    HStack(spacing: 0) {
+                        // Botón día anterior (<)
+                        Button(action: {
+                            goToPreviousDay()
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 9.5, weight: .bold))
+                                .foregroundColor(canGoBackDay ? Color.liquidCyan : Color.white.opacity(0.20))
+                                .frame(width: 26, height: 26)
+                                .contentShape(Rectangle())
                         }
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(showCalendarPicker ? Color.liquidCyan : Color.white.opacity(0.14), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showCalendarPicker, arrowEdge: .bottom) {
-                        CustomGlassCalendarView(
-                            selectedDate: service.selectedDate,
-                            availableDates: service.availableDates,
-                            onSelectDate: { pickedDate in
-                                selectedBlockId = nil
-                                hoveredShare = nil
-                                service.changeSelectedDate(pickedDate)
-                                showCalendarPicker = false
+                        .buttonStyle(.plain)
+                        .disabled(!canGoBackDay)
+                        .help(loc("previous_day"))
+                        
+                        Rectangle()
+                            .fill(Color.white.opacity(0.12))
+                            .frame(width: 1, height: 16)
+                        
+                        // Selector central de fecha con popover de calendario
+                        Button(action: {
+                            showCalendarPicker.toggle()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "calendar")
+                                    .foregroundColor(Color.liquidCyan)
+                                    .font(.system(size: 11.5, weight: .bold))
+                                
+                                Text(Calendar.current.isDateInToday(service.selectedDate) ? "\(loc("today_label")) (\(dayFormatter.string(from: service.selectedDate)))" : dayFormatter.string(from: service.selectedDate))
+                                    .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(Color.textSecondary)
+                                    .rotationEffect(.degrees(showCalendarPicker ? 180 : 0))
                             }
-                        )
-                        .preferredColorScheme(.dark)
+                            .padding(.horizontal, 9)
+                            .frame(height: 26)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showCalendarPicker, arrowEdge: .bottom) {
+                            CustomGlassCalendarView(
+                                selectedDate: service.selectedDate,
+                                availableDates: service.availableDates,
+                                onSelectDate: { pickedDate in
+                                    changeDateWithReset(pickedDate)
+                                    showCalendarPicker = false
+                                }
+                            )
+                            .preferredColorScheme(.dark)
+                        }
+                        
+                        Rectangle()
+                            .fill(Color.white.opacity(0.12))
+                            .frame(width: 1, height: 16)
+                        
+                        // Botón día siguiente (>)
+                        Button(action: {
+                            goToNextDay()
+                        }) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 9.5, weight: .bold))
+                                .foregroundColor(canGoForwardDay ? Color.liquidCyan : Color.white.opacity(0.20))
+                                .frame(width: 26, height: 26)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!canGoForwardDay)
+                        .help(loc("next_day"))
                     }
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(showCalendarPicker ? Color.liquidCyan : Color.white.opacity(0.14), lineWidth: 1)
+                    )
                 }
                 
                 Spacer()
